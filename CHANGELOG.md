@@ -45,6 +45,9 @@ All notable changes to this project will be documented in this file.
   禁止 headless 降级。
 - code 37 按原始文案分类：环境异常为 `ENVIRONMENT_RISK` 并立即停止；只有明确
   token/stoken 过期才允许一次刷新。专用 Chrome profile 应长期复用并降低频率。
+### Improvements / 改进
+
+- Add an explicit `--scope=project` option for project-local Claude Code skill registration while preserving user scope as the default.
 
 ## [1.3.1] - 2026-03-27
 
