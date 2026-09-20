@@ -12,6 +12,7 @@ from agent_reach.backends import OpenCLIStatus
 from agent_reach.channels import get_all_channels, get_channel
 from agent_reach.channels.bilibili import BilibiliChannel
 from agent_reach.channels.facebook import FacebookChannel
+from agent_reach.channels.hackernews import HackerNewsChannel
 from agent_reach.channels.instagram import InstagramChannel
 from agent_reach.channels.v2ex import V2EXChannel
 from agent_reach.channels.xiaohongshu import XiaoHongShuChannel
@@ -1820,3 +1821,408 @@ class TestRSSChannel:
         status, _ = ch.check()
         assert status == "off"
         assert ch.active_backend is None
+
+
+# --------------------------------------------------------------------------- #
+# Hacker News
+# --------------------------------------------------------------------------- #
+
+
+def _hn_item_id(url):
+    return int(url.rsplit("/", 1)[1].split(".")[0])
+
+
+class TestHackerNewsChannel:
+    """Hacker News: rank order, dead-item overscan, and the request bound.
+
+    The failures that matter here are not "the API changed" — they are the ones a
+    naive implementation ships and nobody notices: a top-stories list ordered by
+    network latency, a ``limit=30`` that quietly returns 25, and a ``limit=500``
+    that becomes 500 requests against a free public service.
+    """
+
+    # ---- routing -------------------------------------------------------- #
+
+    def test_can_handle_hn_urls(self):
+        ch = HackerNewsChannel()
+        assert ch.can_handle("https://news.ycombinator.com/item?id=1")
+        assert ch.can_handle("https://hacker-news.firebaseio.com/v0/topstories.json")
+        assert ch.can_handle("https://hn.algolia.com/api/v1/search?query=x")
+        assert not ch.can_handle("https://github.com/user/repo")
+        assert not ch.can_handle("https://reddit.com/r/Python")
+
+    def test_is_registered(self):
+        assert "hackernews" in [ch.name for ch in get_all_channels()]
+
+    # ---- health check --------------------------------------------------- #
+
+    def test_check_ok_when_both_backends_answer(self, monkeypatch):
+        import urllib.request
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                pass
+
+            def read(self, _size=-1):
+                return b"12345"
+
+        monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout=None: FakeResponse())
+        ch = HackerNewsChannel()
+        status, msg = ch.check()
+        assert status == "ok"
+        assert "公开 API 可用" in msg
+        assert ch.active_backend == ch.backends[0]
+
+    def test_check_reports_a_down_search_backend_without_failing_the_channel(self, monkeypatch):
+        """Read works, search does not: still `ok`, but the message must say so."""
+        import urllib.request
+
+        from agent_reach.channels.hackernews import _ALGOLIA_HOST
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                pass
+
+            def read(self, _size=-1):
+                return b"1"
+
+        def opener(req, timeout=None):
+            if _ALGOLIA_HOST in req.full_url:
+                raise URLError("connection refused")
+            return FakeResponse()
+
+        monkeypatch.setattr(urllib.request, "urlopen", opener)
+        ch = HackerNewsChannel()
+        status, msg = ch.check()
+        assert status == "ok"
+        assert "搜索后端" in msg
+        assert ch.active_backend == ch.backends[0]
+
+    def test_check_warn_when_both_backends_fail(self, monkeypatch):
+        import urllib.request
+
+        def raise_error(req, timeout=None):
+            raise URLError("connection refused")
+
+        monkeypatch.setattr(urllib.request, "urlopen", raise_error)
+        ch = HackerNewsChannel()
+        status, msg = ch.check()
+        assert status == "warn"
+        assert "失败" in msg
+        assert ch.active_backend is None
+
+    def test_check_falls_back_to_the_search_backend_when_read_is_down(self, monkeypatch):
+        import urllib.request
+
+        from agent_reach.channels.hackernews import _FIREBASE_HOST
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                pass
+
+            def read(self, _size=-1):
+                return b'{"hits": []}'
+
+        def opener(req, timeout=None):
+            if _FIREBASE_HOST in req.full_url:
+                raise URLError("connection refused")
+            return FakeResponse()
+
+        monkeypatch.setattr(urllib.request, "urlopen", opener)
+        ch = HackerNewsChannel()
+        status, _ = ch.check()
+        assert status == "warn"
+        assert ch.active_backend == ch.backends[1]
+
+    # ---- get_stories ---------------------------------------------------- #
+
+    def test_get_stories_returns_feed_rank_order_not_fetch_order(self, monkeypatch):
+        """Rank is the whole meaning of a "top stories" list.
+
+        The fake feed is deliberately *not* sorted by score, so an
+        implementation that ordered by anything other than the id list fails.
+        """
+        from agent_reach.channels import hackernews as hn
+
+        ids = [30, 10, 20]
+        items = {
+            30: {"id": 30, "type": "story", "title": "third by rank", "score": 999},
+            10: {"id": 10, "type": "story", "title": "first by rank", "score": 1},
+            20: {"id": 20, "type": "story", "title": "second by rank", "score": 500},
+        }
+        monkeypatch.setattr(
+            hn, "_get_json",
+            lambda url: ids if url.endswith("stories.json") else items[_hn_item_id(url)],
+        )
+        stories = hn.HackerNewsChannel().get_stories("top", limit=3)
+        assert [s["title"] for s in stories] == [
+            "third by rank", "first by rank", "second by rank",
+        ]
+
+    def test_get_stories_skips_deleted_and_dead_items(self, monkeypatch):
+        from agent_reach.channels import hackernews as hn
+
+        ids = [1, 2, 3, 4]
+        items = {
+            1: {"id": 1, "type": "story", "title": "alive"},
+            2: None,  # the id no longer resolves at all
+            3: {"id": 3, "type": "story", "title": "removed", "deleted": True},
+            4: {"id": 4, "type": "story", "title": "flagged", "dead": True},
+        }
+        monkeypatch.setattr(
+            hn, "_get_json",
+            lambda url: ids if url.endswith("stories.json") else items[_hn_item_id(url)],
+        )
+        stories = hn.HackerNewsChannel().get_stories("top", limit=4)
+        assert [s["title"] for s in stories] == ["alive"]
+
+    def test_get_stories_waves_so_a_dead_head_does_not_shorten_the_list(self, monkeypatch):
+        """``limit=3`` must return 3 when the leading ids are dead, not 2.
+
+        Without the wave this returns a short list, and the caller has no way to
+        tell a short feed from a short list.
+        """
+        from agent_reach.channels import hackernews as hn
+
+        ids = list(range(1, 21))
+        items = {
+            i: {"id": i, "type": "story", "title": f"s{i}", "deleted": i <= 6} for i in ids
+        }
+        monkeypatch.setattr(
+            hn, "_get_json",
+            lambda url: ids if url.endswith("stories.json") else items[_hn_item_id(url)],
+        )
+        stories = hn.HackerNewsChannel().get_stories("top", limit=3)
+        assert [s["title"] for s in stories] == ["s7", "s8", "s9"]
+
+    def test_get_stories_waves_again_when_one_wave_is_not_enough(self, monkeypatch):
+        """A feed that is dead past the first wave must still reach ``limit``."""
+        from agent_reach.channels import hackernews as hn
+
+        ids = list(range(1, 41))
+        # Everything in the first wave (ids 1..10) is dead except one.
+        items = {
+            i: {"id": i, "type": "story", "title": f"s{i}", "deleted": i <= 10 and i != 9}
+            for i in ids
+        }
+        monkeypatch.setattr(
+            hn, "_get_json",
+            lambda url: ids if url.endswith("stories.json") else items[_hn_item_id(url)],
+        )
+        stories = hn.HackerNewsChannel().get_stories("top", limit=3)
+        assert [s["title"] for s in stories] == ["s9", "s11", "s12"]
+
+    def test_wave_size_is_floored_and_capped_by_the_budget(self):
+        from agent_reach.channels.hackernews import _MIN_BATCH, MAX_ITEM_FETCHES, _wave_size
+
+        # A shortfall below the floor still gets a full first wave...
+        assert _wave_size(1, MAX_ITEM_FETCHES) == _MIN_BATCH
+        # ...and the wave never exceeds what is left of the budget.
+        assert _wave_size(50, 4) == 4
+        assert _wave_size(50, 0) == 0
+
+    def test_get_stories_never_exceeds_the_item_fetch_bound(self, monkeypatch):
+        """The courtesy bound: a large limit must not become a request burst."""
+        from agent_reach.channels import hackernews as hn
+
+        ids = list(range(1, 1001))
+        fetched = []
+
+        def fake_get(url):
+            if url.endswith("stories.json"):
+                return ids
+            fetched.append(url)
+            return {"id": _hn_item_id(url), "type": "story", "title": "x"}
+
+        monkeypatch.setattr(hn, "_get_json", fake_get)
+        stories = hn.HackerNewsChannel().get_stories("top", limit=500)
+        assert len(fetched) <= hn.MAX_ITEM_FETCHES
+        assert len(stories) <= hn.MAX_ITEM_FETCHES
+
+    def test_get_stories_skips_comments_in_a_feed(self, monkeypatch):
+        from agent_reach.channels import hackernews as hn
+
+        ids = [1, 2]
+        items = {
+            1: {"id": 1, "type": "comment", "title": ""},
+            2: {"id": 2, "type": "story", "title": "real story"},
+        }
+        monkeypatch.setattr(
+            hn, "_get_json",
+            lambda url: ids if url.endswith("stories.json") else items[_hn_item_id(url)],
+        )
+        stories = hn.HackerNewsChannel().get_stories("top", limit=2)
+        assert [s["title"] for s in stories] == ["real story"]
+
+    def test_get_stories_rejects_an_unknown_feed(self):
+        with pytest.raises(ValueError):
+            HackerNewsChannel().get_stories("frontpage", limit=1)
+
+    def test_get_stories_returns_empty_for_a_non_positive_limit(self):
+        assert HackerNewsChannel().get_stories("top", limit=0) == []
+
+    def test_get_stories_rejects_a_non_list_feed_payload(self, monkeypatch):
+        from agent_reach.channels import hackernews as hn
+
+        monkeypatch.setattr(hn, "_get_json", lambda url: {"unexpected": True})
+        with pytest.raises(ValueError):
+            hn.HackerNewsChannel().get_stories("top", limit=1)
+
+    def test_ask_hn_story_keeps_url_empty_and_points_at_the_permalink(self, monkeypatch):
+        """Ask HN posts have no external target; inventing one misleads the caller."""
+        from agent_reach.channels import hackernews as hn
+
+        ids = [7]
+        items = {7: {"id": 7, "type": "story", "title": "Ask HN: x", "text": "hello"}}
+        monkeypatch.setattr(
+            hn, "_get_json",
+            lambda url: ids if url.endswith("stories.json") else items[_hn_item_id(url)],
+        )
+        story = hn.HackerNewsChannel().get_stories("ask", limit=1)[0]
+        assert story["url"] == ""
+        assert story["hn_url"] == "https://news.ycombinator.com/item?id=7"
+
+    # ---- items, comments, users ----------------------------------------- #
+
+    def test_get_item_raises_for_a_deleted_item(self, monkeypatch):
+        from agent_reach.channels import hackernews as hn
+
+        monkeypatch.setattr(hn, "_get_json", lambda url: {"id": 5, "deleted": True})
+        with pytest.raises(ValueError):
+            hn.HackerNewsChannel().get_item(5)
+
+    def test_get_comments_skips_dead_replies_and_respects_limit(self, monkeypatch):
+        from agent_reach.channels import hackernews as hn
+
+        parent = {"id": 1, "type": "story", "title": "t", "kids": [10, 11, 12]}
+        replies = {
+            10: {"id": 10, "by": "a", "text": "first", "kids": []},
+            11: {"id": 11, "deleted": True},
+            12: {"id": 12, "by": "c", "text": "third", "kids": [13, 14]},
+        }
+        monkeypatch.setattr(
+            hn, "_get_json",
+            lambda url: parent if url.endswith("/1.json") else replies[_hn_item_id(url)],
+        )
+        comments = hn.HackerNewsChannel().get_comments(1, limit=3)
+        assert [c["by"] for c in comments] == ["a", "c"]
+        assert comments[1]["replies"] == 2
+
+    def test_get_comments_returns_empty_for_a_non_positive_limit(self):
+        assert HackerNewsChannel().get_comments(1, limit=0) == []
+
+    def test_get_user_raises_for_an_unknown_user(self, monkeypatch):
+        from agent_reach.channels import hackernews as hn
+
+        monkeypatch.setattr(hn, "_get_json", lambda url: None)
+        with pytest.raises(ValueError):
+            hn.HackerNewsChannel().get_user("nobody")
+
+    def test_get_user_maps_the_public_profile(self, monkeypatch):
+        from agent_reach.channels import hackernews as hn
+
+        monkeypatch.setattr(
+            hn, "_get_json",
+            lambda url: {"id": "pg", "karma": 1, "created": 2, "about": "<p>hi</p>", "submitted": [1, 2]},
+        )
+        user = hn.HackerNewsChannel().get_user("pg")
+        assert user["id"] == "pg"
+        assert user["about"] == "hi"
+        assert user["submitted_count"] == 2
+
+    def test_read_renders_a_discussion_as_text(self, monkeypatch):
+        from agent_reach.channels import hackernews as hn
+
+        parent = {"id": 42, "type": "story", "title": "A story",
+                  "url": "https://example.com/a", "score": 10, "by": "alice",
+                  "descendants": 1, "kids": [43]}
+        monkeypatch.setattr(
+            hn, "_get_json",
+            lambda url: parent if url.endswith("/42.json") else {"id": 43, "by": "bob", "text": "nice"},
+        )
+        text = hn.HackerNewsChannel().read("https://news.ycombinator.com/item?id=42")
+        assert "A story" in text
+        assert "https://example.com/a" in text
+        assert "bob: nice" in text
+
+    def test_read_rejects_a_non_item_url(self):
+        with pytest.raises(ValueError):
+            HackerNewsChannel().read("https://news.ycombinator.com/newest")
+
+    # ---- search --------------------------------------------------------- #
+
+    def test_search_maps_algolia_hits(self, monkeypatch):
+        from agent_reach.channels import hackernews as hn
+
+        payload = {
+            "hits": [
+                {"objectID": "9", "title": "Show HN: x", "url": "https://x.example",
+                 "points": 5, "num_comments": 2, "author": "a",
+                 "created_at": "2026-01-01T00:00:00Z"},
+                {"objectID": "8", "title": "Another", "points": None, "num_comments": None},
+            ]
+        }
+        monkeypatch.setattr(hn, "_get_json", lambda url: payload)
+        results = hn.HackerNewsChannel().search("show hn", limit=2)
+        assert results[0]["hn_url"] == "https://news.ycombinator.com/item?id=9"
+        assert results[0]["points"] == 5
+        assert results[1]["points"] == 0
+        assert results[1]["created_at"] == ""
+
+    def test_search_returns_empty_for_a_non_positive_limit(self):
+        assert HackerNewsChannel().search("x", limit=0) == []
+
+    # ---- URL and input validation --------------------------------------- #
+
+    def test_api_url_validation_rejects_anything_but_the_public_apis(self):
+        from agent_reach.channels.hackernews import _validate_api_url
+
+        for bad in (
+            "http://hacker-news.firebaseio.com/v0/topstories.json",  # not https
+            "https://evil.example/v0/topstories.json",               # wrong host
+            "https://hacker-news.firebaseio.com.evil.example/v0/x",  # suffix trick
+            "https://user:pw@hacker-news.firebaseio.com/v0/x",       # credentials
+            "https://hacker-news.firebaseio.com:8443/v0/x",          # odd port
+            "https://hacker-news.firebaseio.com/other/x",            # wrong prefix
+            "https://hn.algolia.com/v0/x",                           # prefix/host mismatch
+        ):
+            with pytest.raises(ValueError):
+                _validate_api_url(bad)
+
+    def test_api_url_validation_accepts_the_two_documented_bases(self):
+        from agent_reach.channels.hackernews import _validate_api_url
+
+        _validate_api_url("https://hacker-news.firebaseio.com/v0/item/1.json")
+        _validate_api_url("https://hn.algolia.com/api/v1/search?query=x")
+
+    def test_item_id_parsing_accepts_only_one_numeric_id(self):
+        from agent_reach.channels.hackernews import _item_id_from_url
+
+        assert _item_id_from_url("https://news.ycombinator.com/item?id=42") == 42
+        assert _item_id_from_url("https://news.ycombinator.com/item/?id=42") == 42
+        assert _item_id_from_url("https://news.ycombinator.com/item?id=1&id=2") is None
+        assert _item_id_from_url("https://news.ycombinator.com/item?id=1e3") is None
+        assert _item_id_from_url("https://news.ycombinator.com/item?id=") is None
+        assert _item_id_from_url("https://evil.example/item?id=1") is None
+        assert _item_id_from_url("https://news.ycombinator.com/newest") is None
+
+    # ---- text rendering -------------------------------------------------- #
+
+    def test_strip_html_keeps_link_targets_and_decodes_entities(self):
+        """On HN the link is often the content; dropping the target loses it."""
+        from agent_reach.channels.hackernews import _strip_html
+
+        assert _strip_html('<p>see <a href="https://x.example">this</a></p>') == \
+            "see this (https://x.example)"
+        assert _strip_html("<p>a &amp; b &#x27;c&#x27;</p>") == "a & b 'c'"
+        assert _strip_html("<i>plain</i>") == "plain"
+        assert _strip_html('<a href="https://bare.example"></a>') == "https://bare.example"
