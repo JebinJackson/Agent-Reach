@@ -122,10 +122,30 @@ Based on the user's choice, run:
 agent-reach install --env=auto --system --channels=opencli,xiaohongshu   # Desktop user chose XHS
 agent-reach install --env=auto --system --channels=facebook,instagram    # Desktop Meta channels
 agent-reach install --env=local --system --channels=boss                # Desktop Boss直聘
+agent-reach install --env=auto --system --channels=zhihu                # Official Zhihu CLI; Access Secret configured separately
 agent-reach install --env=auto --system --channels=all                   # User approved everything
 ```
 
-Supported channel names: `opencli`, `twitter`, `xiaoyuzhou`, `xueqiu`, `xiaohongshu`, `reddit`, `facebook`, `instagram`, `bilibili`, `linkedin`, `boss`, `all`
+Supported channel names: `opencli`, `twitter`, `xiaoyuzhou`, `xueqiu`, `xiaohongshu`, `reddit`, `facebook`, `instagram`, `bilibili`, `linkedin`, `boss`, `zhihu`, `all`
+
+### Zhihu official CLI
+
+`--channels=zhihu` installs the official binary from the Zhihu HTTPS release
+manifest, verifies its size/SHA-256/version and reuses compatible installations.
+It supports Windows x64, macOS amd64/arm64 and Linux amd64/arm64. No pip/npm
+package, browser cookies, Chrome extension or MCP service is needed.
+
+Use the absolute executable path printed by installation or Doctor; the official
+installer does not modify PATH. `ZHIHU_CLI_HOME` overrides its data directory.
+Configure an Access Secret from https://developer.zhihu.com/profile using that
+binary's `auth set --secret-stdin`, or inject `ZHIHU_ACCESS_SECRET` for headless
+environments. Credentials remain in the official OS credential store/environment,
+not Agent Reach YAML. Installation never configures or verifies a Secret.
+
+Doctor only probes local version, capabilities and `auth status`; a configured
+but unverified channel remains `warn`. Search, hot lists and answer summaries
+require successful business calls and are subject to account quotas. Follow
+[the Zhihu guide](../agent_reach/skill/references/zhihu.md) for commands and errors.
 
 ### Step 3: Fix what's broken
 

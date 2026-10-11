@@ -49,7 +49,7 @@ Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/ma
 
 | | |
 |---|---|
-| 💰 **완전 무료** | 모든 도구는 오픈 소스, 모든 API는 무료입니다. 유일한 비용은 서버 프록시(월 $1)일 수 있습니다 — 로컬 컴퓨터에서는 불필요 |
+| 💰 **무료 프로젝트** | Agent Reach는 무료 오픈 소스입니다. 외부 서비스의 인증, 할당량, 요금은 제공자 정책을 따릅니다 |
 | 🔒 **프라이버시 안전** | Cookie는 로컬에 유지됩니다. 업로드되지 않습니다. 완전 오픈 소스 — 언제든지 감사 가능 |
 | 🔄 **최신 상태 유지** | 업스트림 도구(yt-dlp, twitter-cli, rdt-cli, Jina Reader 등)를 추적하고 정기적으로 업데이트 |
 | 🤖 **모든 에이전트와 호환** | Claude Code, OpenClaw, Cursor, Windsurf... 명령을 실행할 수 있는 모든 에이전트 |
@@ -61,6 +61,7 @@ Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/ma
 
 | 플랫폼 | 기능 | 설정 | 참고 |
 |----------|-------------|:-----:|-------|
+| 📘 **Zhihu** | 검색, 인기 목록, 답변 요약과 원문 링크 | Access Secret | 공식 `zhihu-cli` |
 | 🌐 **Web** | 읽기 | 없음 | 모든 URL → 깨끗한 Markdown ([Jina Reader](https://github.com/jina-ai/reader) ⭐9.8K) |
 | 🐦 **Twitter/X** | 읽기 · 검색 | Cookie | Cookie로 검색, 타임라인, 트윗 읽기, 아티클 읽기 가능 ([twitter-cli](https://github.com/public-clis/twitter-cli)) |
 | 📕 **XiaoHongShu** | 읽기 · 검색 · 댓글 | OpenCLI / Cookie | OpenCLI는 사용자가 관리하는 기존 Chrome 세션만 사용하며, MCP/기존 도구는 Cookie-Editor 사용 |
@@ -198,6 +199,7 @@ Agent Reach는 한 가지 간단한 작업을 수행합니다: **도구 선택 �
 
 ```
 channels/
+├── zhihu.py        → 공식 zhihu-cli
 ├── web.py          → Jina Reader     ← Firecrawl, Crawl4AI로 교체...
 ├── twitter.py      → twitter-cli      ← 공식 API로 교체...
 ├── youtube.py      → yt-dlp          ← YouTube API, Whisper로 교체...
@@ -227,6 +229,7 @@ channels/
 | RSS 읽기 | [feedparser](https://github.com/kurtmckee/feedparser) | Python 생태계 표준, 2.3K stars |
 | XiaoHongShu | [OpenCLI](https://github.com/jackwener/opencli) (데스크톱) ▸ [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) (서버) ▸ xhs-cli | OpenCLI는 사용자가 관리하는 기존 세션만 사용하며, 그 외에는 Cookie-Editor로 수동 설정 |
 | LinkedIn | [mcp-server-linkedin](https://github.com/stickerdaniel/linkedin-mcp-server) | 1.2K stars, MCP 서버, 브라우저 자동화 |
+| Zhihu | [공식 Zhihu CLI](https://developer.zhihu.com/docs?key=zhihu_cli) | 공식 오픈 플랫폼으로 검색, 인기 목록, 답변 요약 지원 |
 | WeChat Articles | [Exa](https://exa.ai) (검색 + 읽기) + [Camoufox](https://github.com/daijro/camoufox) (선택) | 설정 없이 검색 + 전체 글 읽기 |
 | Xiaoyuzhou Podcast | `transcribe.sh` | `bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh <URL>` |
 
