@@ -7,9 +7,9 @@ description: >
 
   Also MUST USE when user mentions any platform or shares any URL/link:
   Twitter/X, Reddit, Facebook, Instagram, YouTube, GitHub, Bilibili, XiaoHongShu,
-  Xiaoyuzhou Podcast, LinkedIn/Boss直聘/jobs/recruiting, V2EX, Xueqiu (stocks), RSS.
+  Xiaoyuzhou Podcast, LinkedIn/Boss直聘/jobs/recruiting, V2EX, Xueqiu (stocks), Zhihu/知乎, RSS.
 
-  16 platforms, multi-backend routing (OpenCLI / per-platform CLIs / APIs).
+  17 platforms, multi-backend routing (OpenCLI / per-platform CLIs / APIs).
   Zero config for 6 channels. Run `agent-reach doctor --json` to see which
   backend serves each platform right now.
 
@@ -22,13 +22,13 @@ metadata:
 
 # Agent Reach — internet capability router
 
-16 platforms, multiple backends each. **When this skill exists, use it for
+17 platforms, multiple backends each. **When this skill exists, use it for
 these platforms — do not invent your own approach.**
 
 ## Standing rules (apply for the whole session)
 
 1. **Health-check before acting**: for multi-backend/login-backed platforms (XiaoHongShu /
-   Reddit / Bilibili / Twitter / Facebook / Instagram), run `agent-reach doctor --json` first.
+   Reddit / Bilibili / Twitter / Facebook / Instagram / Zhihu), run `agent-reach doctor --json` first.
    Use a populated `active_backend`; `active_backend: null` means Doctor deliberately skipped a
    live probe to avoid browser-cookie reads or remote writes, not that no backend exists. Only when
    the user's task requires that platform, run the reference's read-only command to verify it.
@@ -52,6 +52,7 @@ these platforms — do not invent your own approach.**
 |---------|------|---------|
 | Web / code search | search | [references/search.md](references/search.md) |
 | XiaoHongShu / Twitter / Bilibili / V2EX / Reddit / Facebook / Instagram | social | [references/social.md](references/social.md) |
+| Zhihu search / hot list / answer summaries | social | [references/zhihu.md](references/zhihu.md) |
 | Jobs / LinkedIn | career | [references/career.md](references/career.md) |
 | GitHub / code | dev | [references/dev.md](references/dev.md) |
 | Web pages / articles / RSS | web | [references/web.md](references/web.md) |
@@ -81,6 +82,13 @@ bili search "query" --type video -n 5
 ```
 
 ## Login-backed platforms (pick by doctor's active_backend)
+
+Zhihu requires an **Access Secret**, not browser cookies. Read the
+[Zhihu guide](references/zhihu.md) first. The user obtains the Secret from
+https://developer.zhihu.com/profile and saves it in the OS credential store with
+the official CLI's `auth set --secret-stdin`; servers without a credential store
+use process-level `ZHIHU_ACCESS_SECRET`. Installing the CLI does not configure
+authentication. Never put the Secret in Agent Reach config, command arguments or logs.
 
 Twitter boundary: cookies saved by `agent-reach configure twitter-cookies`
 are used only by `doctor` to check whether explicit credentials are present.
@@ -171,4 +179,6 @@ chains — note: reference docs are written in Chinese, commands are universal):
 If a channel needs setup, fetch the install guide:
 https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 
-The user only provides cookies / one extension click; the agent does the rest.
+Follow each platform's authentication guide: Zhihu requires an Access Secret;
+other platforms may require cookies or a browser login. The agent handles installation
+and setup guidance; the user supplies credentials or completes the platform's login flow.

@@ -49,7 +49,7 @@ Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/ma
 
 | | |
 |---|---|
-| 💰 **完全無料** | すべてのツールはオープンソース、すべてのAPIは無料。唯一のコストはサーバープロキシ（月額$1）の可能性のみ — ローカルPCでは不要 |
+| 💰 **無料のプロジェクト** | Agent Reach は無料・オープンソースです。外部サービスの認証・利用枠・料金は各提供元に従います |
 | 🔒 **プライバシー安全** | Cookieはローカルに保存。アップロードされることはありません。完全オープンソース — いつでも監査可能 |
 | 🔄 **常に最新** | 上流ツール（yt-dlp、twitter-cli、rdt-cli、Jina Reader等）を定期的に追跡・更新 |
 | 🤖 **あらゆるエージェントに対応** | Claude Code、OpenClaw、Cursor、Windsurf… コマンドを実行できるすべてのエージェント |
@@ -61,6 +61,7 @@ Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/ma
 
 | プラットフォーム | 機能 | セットアップ | 備考 |
 |-----------------|------|:----------:|------|
+| 📘 **知乎 / Zhihu** | 検索・トレンド・回答の要約と原文リンク | Access Secret | 公式 `zhihu-cli` |
 | 🌐 **Web** | 閲覧 | 設定不要 | 任意のURL → クリーンなMarkdown（[Jina Reader](https://github.com/jina-ai/reader) ⭐9.8K） |
 | 🐦 **Twitter/X** | 閲覧・検索 | 設定不要 / Cookie | 単一ツイートはすぐに閲覧可能。Cookieで検索、タイムライン、投稿が解放（[twitter-cli](https://github.com/public-clis/twitter-cli)） |
 | 📕 **小紅書** | 閲覧・検索・コメント | OpenCLI / Cookie | OpenCLI はユーザー管理の既存 Chrome セッションだけを使用。MCP/旧ツールは Cookie-Editor を使用 |
@@ -198,6 +199,7 @@ Agent Reach はシンプルなことを1つだけ行います：**ツールの�
 
 ```
 channels/
+├── zhihu.py        → 公式 zhihu-cli
 ├── web.py          → Jina Reader     ← Firecrawl、Crawl4AIなどに差し替え可能…
 ├── twitter.py      → twitter-cli      ← 公式APIなどに差し替え可能…
 ├── youtube.py      → yt-dlp          ← YouTube API、Whisperなどに差し替え可能…
@@ -226,6 +228,7 @@ channels/
 | RSS閲覧 | [feedparser](https://github.com/kurtmckee/feedparser) | Pythonエコシステムの標準、⭐2.3K |
 | 小紅書 | [OpenCLI](https://github.com/jackwener/opencli)（デスクトップ）▸ [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp)（サーバー）▸ xhs-cli | OpenCLI は既存のユーザー管理セッションのみ使用。その他は Cookie-Editor で手動設定 |
 | LinkedIn | [mcp-server-linkedin](https://github.com/stickerdaniel/linkedin-mcp-server) | ⭐900+、MCPサーバー、ブラウザ自動化 |
+| 知乎 | [公式 Zhihu CLI](https://developer.zhihu.com/docs?key=zhihu_cli) | 公式オープンプラットフォーム。検索・トレンド・回答の要約に対応 |
 | WeChat記事 | [Exa](https://exa.ai)（検索+閲覧）+ [Camoufox](https://github.com/daijro/camoufox)（オプション） | ゼロ設定で検索+全文閲覧、Camoufoxでオプション強化 |
 | 小宇宙Podcast | `transcribe.sh` | `bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh <URL>` |
 

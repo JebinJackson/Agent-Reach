@@ -59,7 +59,7 @@ def format_report(results: Dict[str, dict]) -> str:
     lines = []
     lines.append("[bold cyan]Agent Reach 状态[/bold cyan]")
     lines.append("[cyan]" + "=" * 40 + "[/cyan]")
-    lines.append("图例：[green]✅[/green] 可用  [yellow][!][/yellow] 已装但需配置/登录  [red][X][/red] 未安装")
+    lines.append("图例：[green]✅[/green] 可用  [yellow][!][/yellow] 需配置/登录或待验证  [red][X][/red] 未安装或检查失败")
 
     ok_count = sum(1 for r in results.values() if r["status"] == "ok")
     total = len(results)
@@ -77,33 +77,26 @@ def format_report(results: Dict[str, dict]) -> str:
             elif r["status"] in ("off", "error"):
                 lines.append(f"  [red][X][/red]  {name_msg}")
 
-    # Tier 1 — needs free key / login
-    tier1 = {k: r for k, r in results.items() if r["tier"] == 1}
-    tier1_active = {k: r for k, r in tier1.items() if r["status"] == "ok"}
-    tier1_inactive = {k: r for k, r in tier1.items() if r["status"] != "ok"}
-    if tier1_active:
+    # Optional channels: warnings/errors carry actionable diagnostics. Only
+    # explicitly absent channels belong in the compact installation summary.
+    optional = [r for r in results.values() if r["tier"] in (1, 2)]
+    visible = [r for r in optional if r["status"] != "off"]
+    if visible:
         lines.append("")
-        lines.append("[bold]可选渠道（已安装）：[/bold]")
-        for key, r in tier1_active.items():
-            lines.append(f"  [green]✅[/green] {_name_msg(r, escape)}")
-
-    # Tier 2 — optional complex setup
-    tier2 = {k: r for k, r in results.items() if r["tier"] == 2}
-    tier2_active = {k: r for k, r in tier2.items() if r["status"] == "ok"}
-    tier2_inactive = {k: r for k, r in tier2.items() if r["status"] != "ok"}
-    if tier2_active:
-        if not tier1_active:
-            lines.append("")
-            lines.append("[bold]可选渠道（已安装）：[/bold]")
-        for key, r in tier2_active.items():
-            lines.append(f"  [green]✅[/green] {_name_msg(r, escape)}")
+        lines.append("[bold]可选渠道：[/bold]")
+        for r in visible:
+            marker = {
+                "ok": "[green]✅[/green]",
+                "warn": "[yellow][!][/yellow]",
+            }.get(r["status"], "[red][X][/red]")
+            lines.append(f"  {marker} {_name_msg(r, escape)}")
 
     lines.append("")
     status_color = "green" if ok_count == total else ("yellow" if ok_count > 0 else "red")
     lines.append(f"状态：[{status_color}]{ok_count}/{total}[/{status_color}] 个渠道可用")
 
-    # Summarize inactive optional channels in one line instead of listing each
-    all_inactive = list(tier1_inactive.values()) + list(tier2_inactive.values())
+    # Summarize absent optional channels in one line instead of listing each.
+    all_inactive = [r for r in optional if r["status"] == "off"]
     if all_inactive:
         names = [r["name"] for r in all_inactive]
         lines.append(

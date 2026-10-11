@@ -36,6 +36,7 @@ class TestChannelRegistry:
         assert "facebook" in names
         assert "instagram" in names
         assert "v2ex" in names
+        assert "zhihu" in names
 
 
 class TestOpenCLISiteChannels:

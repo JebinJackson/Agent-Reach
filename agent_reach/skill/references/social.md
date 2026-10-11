@@ -1,5 +1,8 @@
 # 社交媒体 & 社区
 
+知乎使用官方 `zhihu-cli`：搜索、热榜、问题回答摘要；需 Access Secret，
+无需浏览器 Cookie。安装、绝对路径、认证和命令见 [知乎指南](zhihu.md)。
+
 小红书、Twitter/X、B站、V2EX、Reddit、Facebook、Instagram。
 
 ## 小红书 / XiaoHongShu（多后端）

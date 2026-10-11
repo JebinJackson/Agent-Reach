@@ -8,6 +8,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added / 新增
+
+- 新增 `zhihu` 渠道：通过知乎官方 `zhihu-cli` 搜索知乎、获取热榜与问题回答摘要。
+- `agent-reach install --system --channels=zhihu` 从官方发布清单安装校验过的用户级二进制，
+  支持 Windows x64、macOS/Linux amd64 和 arm64；兼容官方安装目录及 `ZHIHU_CLI_HOME`。
+- Doctor 只做本地版本、能力和认证配置检查；Access Secret 仍由官方 CLI 的系统凭据库或
+  进程级环境变量管理。Skill 提供带来源链接的只读调用、分页与额度错误处理指南。
+
 ### 🐛 Bug Fixes / 修复
 
 #### 🔐 Boss直聘 — 登录态误判（双凭据存储）

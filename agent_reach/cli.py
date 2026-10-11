@@ -102,7 +102,7 @@ def main():
     p_install.add_argument("--channels", default="",
                            help="Comma-separated optional channels to install "
                                 "(twitter,xiaoyuzhou,xueqiu,xiaohongshu,"
-                                "reddit,facebook,instagram,bilibili,linkedin,boss,all)")
+                                "reddit,facebook,instagram,bilibili,linkedin,boss,zhihu,all)")
 
     # ── configure ──
     p_conf = sub.add_parser("configure", help="Set a config value or auto-extract from browser")
@@ -280,6 +280,7 @@ def _cmd_install(args):
         "instagram":   _install_opencli_deps,
         "bilibili":    _install_bili_deps,
         "boss":        _install_boss_deps,
+        "zhihu":       _install_zhihu_deps,
         "opencli":     _install_opencli_deps,  # cross-channel backend, desktop only
         # xueqiu: cookie-only, no install step
         # linkedin: manual setup, no auto-install
@@ -1161,6 +1162,23 @@ def _install_rdt_cli():
                 pass
     print(f"  [!]  rdt-cli install failed. Run: pipx install '{_RDT_GIT_SOURCE}'")
     return False
+
+
+def _install_zhihu_deps():
+    """Install/reuse the official per-user binary; authentication stays explicit."""
+    from agent_reach.backends.zhihu import DOCS_URL, install_cli
+
+    print("Setting up 知乎 (official zhihu-cli)...")
+    try:
+        binary = install_cli()
+    except Exception:
+        # Download/probe failures may contain untrusted output: never echo them.
+        print(f"  [!]  知乎官方 CLI 安装失败，检查网络/目录权限。手动安装指南：{DOCS_URL}")
+        return False
+    print(f"  ✅ 知乎官方 CLI 已就绪：{binary}")
+    print("  使用此绝对路径执行命令；无需修改 PATH。")
+    print("  Access Secret 由官方 CLI 管理：auth set --secret-stdin；服务器使用 ZHIHU_ACCESS_SECRET。")
+    return True
 
 
 def _install_bili_deps():

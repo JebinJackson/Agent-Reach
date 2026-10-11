@@ -90,7 +90,7 @@ Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/ma
 
 | | |
 |---|---|
-| 💰 **Completely free** | All tools are open source, all APIs are free. The only possible cost is a server proxy ($1/month) — local computers don't need one |
+| 💰 **Free project** | Agent Reach is free and open source; upstream authentication, quotas and pricing vary |
 | 🔒 **Privacy safe** | Cookies stay local. Never uploaded. Fully open source — audit anytime |
 | 🔄 **Kept up to date** | Every platform routes through a primary + fallback backend list. When an access path dies, we switch to the next — you won't notice (June 2026: Bilibili 412-blocked yt-dlp → switched to bili-cli, zero action on your side) |
 | 🤖 **Works with any Agent** | Claude Code, OpenClaw, Cursor, Windsurf… any Agent that can run commands |
@@ -102,6 +102,7 @@ Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/ma
 
 | Platform | Capabilities | Setup | Notes |
 |----------|-------------|:-----:|-------|
+| 📘 **Zhihu** | Search, hot list, answer summaries and source links | Access Secret | Official `zhihu-cli` |
 | 🌐 **Web** | Read | Zero config | Any URL → clean Markdown ([Jina Reader](https://github.com/jina-ai/reader) ⭐9.8K) |
 | 🐦 **Twitter/X** | Read · Search | Cookie | Cookie unlocks search, timeline, tweet reading, articles ([twitter-cli](https://github.com/public-clis/twitter-cli)) |
 | 📕 **XiaoHongShu** | Read · Search · Comments | OpenCLI / MCP | OpenCLI uses only an existing user-controlled Chrome session; MCP/legacy tools use a manual Cookie-Editor export |
@@ -264,6 +265,7 @@ Switching access paths means reordering the list, not rewriting code. `agent-rea
 
 ```
 channels/
+├── zhihu.py        → official zhihu-cli
 ├── web.py          → Jina Reader
 ├── twitter.py      → twitter-cli ▸ OpenCLI ▸ bird
 ├── youtube.py      → yt-dlp
@@ -297,6 +299,7 @@ Each channel file **actually probes** its candidate backends in order (not just 
 | Read RSS | [feedparser](https://github.com/kurtmckee/feedparser) | — | Python ecosystem standard |
 | XiaoHongShu | [OpenCLI](https://github.com/jackwener/opencli) (desktop) | [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) (server) ▸ xhs-cli | OpenCLI uses only an existing user-controlled session; other backends use a manual Cookie-Editor export |
 | LinkedIn | [mcp-server-linkedin](https://github.com/stickerdaniel/linkedin-mcp-server) | Jina Reader | MCP server, browser automation |
+| Zhihu | [Official Zhihu CLI](https://developer.zhihu.com/docs?key=zhihu_cli) | — | Official Open Platform; search, hot list and answer summaries |
 | Xiaoyuzhou Podcast | `transcribe.sh` | — | `bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh <URL>` |
 
 > 📌 These are the *current* choices, re-verified regularly on real machines. When a path dies we switch to the next — `agent-reach doctor` always tells you which one is active.

@@ -8,9 +8,9 @@ description: >
   Also MUST USE when user mentions any platform or shares any URL/链接:
   小红书/xiaohongshu/xhs, Twitter/推特/X, B站/bilibili, Reddit, Facebook,
   Instagram, V2EX, LinkedIn/领英/Boss直聘/招聘/求职/jobs, YouTube, GitHub code search, 小宇宙播客,
-  雪球/股票行情, RSS feeds, or any web URL.
+  雪球/股票行情, 知乎/zhihu, RSS feeds, or any web URL.
 
-  16 platforms, multi-backend routing (OpenCLI / per-platform CLIs / APIs).
+  17 platforms, multi-backend routing (OpenCLI / per-platform CLIs / APIs).
   Zero config for 6 channels. Run `agent-reach doctor --json` to see which
   backend serves each platform right now.
 
@@ -25,11 +25,11 @@ metadata:
 
 # Agent Reach — 互联网能力路由器
 
-16 平台、多后端。**本 skill 存在时必须用它访问这些平台，不要自己发明方案。**
+17 平台、多后端。**本 skill 存在时必须用它访问这些平台，不要自己发明方案。**
 
 ## 常驻规则（全程适用）
 
-1. **动手前先体检**：多后端/登录态平台（小红书/Reddit/B站/Twitter/Facebook/Instagram/Boss直聘）先跑
+1. **动手前先体检**：多后端/登录态平台（小红书/Reddit/B站/Twitter/Facebook/Instagram/Boss直聘/知乎）先跑
    `agent-reach doctor --json`。`active_backend` 有值时按它选命令组；`active_backend: null`
    表示 Doctor 为避免触发浏览器 Cookie 读取或远端写入而没有做实时验证，不代表后端不存在。
    Doctor 结果是「某一时刻的快照」，通道/登录态可能已变化；执行只读命令前若怀疑失效，
@@ -49,6 +49,7 @@ metadata:
 |---------|------|---------|
 | 网页搜索/代码搜索 | search | [references/search.md](references/search.md) |
 | 小红书/推特/B站/V2EX/Reddit/Facebook/Instagram | social | [references/social.md](references/social.md) |
+| 知乎搜索/热榜/回答摘要 | social | [references/zhihu.md](references/zhihu.md) |
 | 招聘/职位/LinkedIn/Boss直聘 | career | [references/career.md](references/career.md) |
 | GitHub/代码 | dev | [references/dev.md](references/dev.md) |
 | 网页/文章/RSS | web | [references/web.md](references/web.md) |
@@ -78,6 +79,12 @@ bili search "query" --type video -n 5
 ```
 
 ## 需登录态的平台（按 doctor 的 active_backend 选命令）
+
+知乎使用 **Access Secret**，不使用浏览器 Cookie。先读取
+[知乎使用指南](references/zhihu.md)，引导用户在 https://developer.zhihu.com/profile
+申请 Access Secret，通过官方 CLI 的 `auth set --secret-stdin` 保存到系统凭据库；
+无凭据库的服务器使用进程级 `ZHIHU_ACCESS_SECRET`。安装 CLI 不会自动配置认证，
+不要将 Secret 写入 Agent Reach 配置、命令参数或日志。
 
 Twitter 注意：`agent-reach configure twitter-cookies` 保存的 Cookie 只供
 `doctor` 检查配置是否齐全；`doctor` 不执行 `twitter status`，也不会设置当前
@@ -162,4 +169,5 @@ agent-reach doctor --json
 如果某个 channel 需要配置，获取安装指南：
 https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 
-用户只需提供 cookies，其他配置由 agent 完成。
+按各平台指南完成认证：知乎需要 Access Secret；其他平台可能需要 Cookie 或浏览器登录态。
+Agent 负责安装和配置引导，凭据由用户提供或在平台指定的登录流程中配置。
