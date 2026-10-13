@@ -1,5 +1,7 @@
 <h1 align="center">👁️ Agent Reach</h1>
 
+Threads public search/profile/post support is available through a bundled read-only OpenCLI adapter. See [setup, date filtering and incremental collection](docs/threads.md). Doctor availability and successful live reads are reported separately.
+
 <p align="center">
   <strong>给你的 AI Agent 一键装上互联网能力</strong>
 </p>

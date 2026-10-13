@@ -102,7 +102,7 @@ def main():
     p_install.add_argument("--channels", default="",
                            help="Comma-separated optional channels to install "
                                 "(twitter,xiaoyuzhou,xueqiu,xiaohongshu,"
-                                "reddit,facebook,instagram,bilibili,linkedin,boss,all)")
+                                "reddit,facebook,threads,instagram,bilibili,linkedin,boss,all)")
 
     # ── configure ──
     p_conf = sub.add_parser("configure", help="Set a config value or auto-extract from browser")
@@ -277,6 +277,7 @@ def _cmd_install(args):
         "xiaohongshu": _install_xhs_deps,
         "reddit":      _install_reddit_deps,
         "facebook":    _install_opencli_deps,
+        "threads":     _install_threads_deps,
         "instagram":   _install_opencli_deps,
         "bilibili":    _install_bili_deps,
         "boss":        _install_boss_deps,
@@ -323,7 +324,7 @@ def _cmd_install(args):
         tools_dir = os.path.expanduser("~/.agent-reach/tools")
         os.makedirs(tools_dir, exist_ok=True)
 
-    DESKTOP_ONLY_CHANNELS = {"opencli", "facebook", "instagram", "boss"}
+    DESKTOP_ONLY_CHANNELS = {"opencli", "facebook", "threads", "instagram", "boss"}
     COOKIE_CHANNELS = {"twitter", "xueqiu", "bilibili", "xiaohongshu"}
 
     # Auto-detect environment
@@ -1058,6 +1059,30 @@ def _install_xhs_deps():
     if xhs_ok:
         print("  ✅ 检测到存量 xhs-cli，将作为备选后端继续可用")
     return opencli_ok or xhs_ok
+
+
+def _install_threads_deps():
+    """Install the bundled Threads plugin, never a login session."""
+    import shutil
+    import subprocess
+    from pathlib import Path
+    if not _install_opencli_deps():
+        return False
+    command = shutil.which('opencli.cmd') or shutil.which('opencli')
+    node = shutil.which('node')
+    if not command or not node:
+        return False
+    entry = Path(command).parent / 'node_modules/@jackwener/opencli/dist/src/main.js'
+    launcher = [node, str(entry)] if command.lower().endswith(('.cmd', '.bat', '.ps1')) else [command]
+    plugin = Path(__file__).resolve().parent / 'integrations/threads_opencli'
+    if (len(launcher) == 2 and not entry.is_file()) or not (plugin/'opencli-plugin.json').is_file():
+        print('Threads local plugin source or OpenCLI Node entrypoint missing')
+        return False
+    result = subprocess.run([*launcher,'plugin','install',plugin.as_uri()],capture_output=True,encoding='utf-8',errors='replace',timeout=60)
+    if result.returncode:
+        print('Threads plugin installation failed; inspect the existing plugin before replacing it')
+        return False
+    return True
 
 
 def _install_opencli_deps():

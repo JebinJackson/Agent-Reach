@@ -1,0 +1,6 @@
+{
+  "name": "threads",
+  "version": "0.1.0",
+  "description": "Read-only public Threads search, profile and post adapter",
+  "opencli": ">=1.8.8"
+}
