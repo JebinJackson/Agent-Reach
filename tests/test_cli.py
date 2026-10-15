@@ -477,7 +477,88 @@ class TestVersionCompare:
         assert cli._is_newer_version("1.5.0", "1.5.0-dev") is True
 
 
+
+class TestInstalledVcsCommit:
+    def test_reads_commit_id_from_direct_url(self, monkeypatch):
+        class Dist:
+            def read_text(self, name):
+                assert name == "direct_url.json"
+                return '{"vcs_info": {"commit_id": "abc1234deadbeef"}}'
+
+        monkeypatch.setattr(
+            "importlib.metadata.distribution", lambda name: Dist()
+        )
+        assert cli._installed_vcs_commit() == "abc1234deadbeef"
+
+    def test_missing_direct_url_returns_none(self, monkeypatch):
+        class Dist:
+            def read_text(self, name):
+                return None
+
+        monkeypatch.setattr(
+            "importlib.metadata.distribution", lambda name: Dist()
+        )
+        assert cli._installed_vcs_commit() is None
+
+
+class TestMainAheadOfRelease:
+    def test_compare_reports_ahead_count(self, monkeypatch):
+        class R:
+            status_code = 200
+
+            @staticmethod
+            def json():
+                return {
+                    "ahead_by": 3,
+                    "commits": [
+                        {"sha": "1111111111111111111111111111111111111111"},
+                        {"sha": "2222222222222222222222222222222222222222"},
+                        {"sha": "abcdef0123456789abcdef0123456789abcdef01"},
+                    ],
+                }
+
+        monkeypatch.setattr(cli, "_github_get_with_retry", lambda *a, **k: (R(), None, 1))
+        ahead_by, tip = cli._commits_main_ahead_of_tag("1.5.0")
+        assert ahead_by == 3
+        assert tip == "abcdef0"
+
+    def test_check_update_flags_main_ahead_when_version_matches(self, monkeypatch, capsys):
+        release = {"tag_name": "v1.5.0", "body": "notes"}
+        compare = {
+            "ahead_by": 8,
+            "commits": [{"sha": "dddddddddddddddddddddddddddddddddddddddd"}],
+        }
+
+        def fake_get(url, timeout=10, retries=3, sleeper=None):
+            class R:
+                status_code = 200
+
+                def __init__(self, payload):
+                    self._payload = payload
+
+                def json(self):
+                    return self._payload
+
+            if "releases/latest" in url:
+                return R(release), None, 1
+            if "compare/" in url:
+                return R(compare), None, 1
+            return None, "unknown", 1
+
+        monkeypatch.setattr(cli, "_github_get_with_retry", fake_get)
+        monkeypatch.setattr(cli, "_installed_vcs_commit", lambda: None)
+        import agent_reach
+        monkeypatch.setattr(agent_reach, "__version__", "1.5.0")
+
+        result = cli._cmd_check_update()
+        out = capsys.readouterr().out
+        assert result == "update_available"
+        assert "8 个提交" in out
+        assert "force-reinstall" in out
+
+
 class TestWatchVersionCompare:
+
     def test_watch_does_not_prompt_downgrade(self, monkeypatch, capsys):
         """watch 与 check-update 同语义:本地领先远端 release 时不提示更新。"""
         class R:
