@@ -32,18 +32,27 @@ Update Agent Reach to the latest version, refresh upstream tools, migrate from r
 agent-reach check-update
 ```
 
-If it says "已是最新版本", skip to Step 4 (verify). Otherwise continue.
+If it says "已是最新版本", skip to Step 4 (verify). If it reports that
+`main` has commits beyond the release (or that the installed commit lags
+`main`), continue — the version string alone is not enough.
 
 ### Step 2: Update Agent Reach package
 
+`main`'s `pyproject.toml` version string often stays unchanged while commits
+land on `main`. Plain `pip install --upgrade` then prints *Requirement
+already satisfied* and installs nothing. Always force a reinstall:
+
 ```bash
-pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip
+pip install --upgrade --force-reinstall --no-deps https://github.com/Panniantong/agent-reach/archive/main.zip
 ```
 
-> If pip complains about `externally-managed-environment` (PEP 668), the user
-> originally installed via pipx or a venv — use the matching command:
-> `pipx install --force https://github.com/Panniantong/agent-reach/archive/main.zip`
-> or activate `~/.agent-reach-venv` first.
+> If pip complains about `externally-managed-environment` (PEP 668), pick the
+> layout that matches how Agent Reach was originally installed:
+>
+> - **pipx:** `pipx install --force https://github.com/Panniantong/agent-reach/archive/main.zip`
+> - **venv (`~/.agent-reach-venv`):** activate it first, then run the force-reinstall command above (only if that venv actually contains `agent_reach` — an empty stub with just `bin/python*` is not a real install)
+> - **user-site** (`python -m site --user-site` shows the package; common for `pip install --user`):  
+>   `python -m pip install --upgrade --user --force-reinstall --no-deps --break-system-packages https://github.com/Panniantong/agent-reach/archive/main.zip`
 
 ### Step 3: Refresh upstream tools
 

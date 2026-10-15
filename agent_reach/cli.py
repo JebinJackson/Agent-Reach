@@ -2241,11 +2241,16 @@ def _github_get_with_retry(url, timeout=10, retries=3, sleeper=time.sleep):
 
 #: Full update = package + upstream tools + skill. The one-liner walks an
 #: agent through all three (docs/update.md); bare pip only updates the package.
+#: --force-reinstall is required: main.zip keeps the same version string while
+#: main moves, so plain --upgrade is a no-op (see #803).
+_MAIN_ZIP_URL = (
+    "https://github.com/Panniantong/agent-reach/archive/main.zip"
+)
 _UPDATE_INSTRUCTIONS = (
     "更新方式（推荐，复制这句话给你的 AI Agent，会完整更新本体+上游工具+skill）：\n"
     "  帮我更新 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md\n"
-    "仅更新本体（不含上游工具和 skill）：\n"
-    "  pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip"
+    "仅更新本体（不含上游工具和 skill；必须 force-reinstall，因为 main 的版本号常不变）：\n"
+    f"  pip install --upgrade --force-reinstall --no-deps {_MAIN_ZIP_URL}"
 )
 
 
@@ -2266,6 +2271,66 @@ def _is_newer_version(remote: str, local: str) -> bool:
     if remote_version is None or local_version is None:
         return remote != local  # unparseable — fall back to old behavior
     return remote_version > local_version
+
+
+def _installed_vcs_commit():
+    """Return the installed package's VCS commit id when pip recorded one.
+
+    Editable / git installs expose this via direct_url.json. Floating
+    main.zip installs usually do not, so callers must still handle None.
+    """
+    try:
+        from importlib.metadata import distribution
+    except ImportError:  # pragma: no cover
+        return None
+    try:
+        dist = distribution("agent-reach")
+    except Exception:
+        return None
+    try:
+        direct = dist.read_text("direct_url.json")
+    except Exception:
+        return None
+    if not direct:
+        return None
+    try:
+        import json
+
+        data = json.loads(direct)
+    except Exception:
+        return None
+    vcs = data.get("vcs_info") or {}
+    commit = vcs.get("commit_id")
+    if isinstance(commit, str) and commit:
+        return commit
+    return None
+
+
+def _commits_main_ahead_of_tag(tag: str):
+    """How many commits main is ahead of a release tag, or None on failure.
+
+    Returns (ahead_by, main_sha7) when the compare API succeeds.
+    """
+    tag = tag.lstrip("v")
+    url = (
+        "https://api.github.com/repos/Panniantong/Agent-Reach/"
+        f"compare/v{tag}...main"
+    )
+    resp, err, _attempts = _github_get_with_retry(url, timeout=10, retries=2)
+    if err or resp is None or resp.status_code != 200:
+        return None
+    try:
+        data = resp.json()
+    except Exception:
+        return None
+    ahead = data.get("ahead_by")
+    if ahead is None:
+        return None
+    tip = ""
+    commits = data.get("commits") or []
+    if commits:
+        tip = (commits[-1].get("sha") or "")[:7]
+    return int(ahead), tip
 
 
 def _cmd_check_update():
@@ -2298,6 +2363,43 @@ def _cmd_check_update():
             print()
             print(_UPDATE_INSTRUCTIONS)
             return "update_available"
+
+        # Version string matches (or local is ahead of the release tag), but
+        # main.zip installs keep pyproject version frozen while main moves.
+        installed_commit = _installed_vcs_commit()
+        if installed_commit:
+            resp_main, err_main, _a = _github_get_with_retry(
+                commit_url, timeout=10, retries=2
+            )
+            if not err_main and resp_main is not None and resp_main.status_code == 200:
+                main_sha = resp_main.json().get("sha", "")
+                if main_sha and not main_sha.startswith(installed_commit) and installed_commit not in main_sha:
+                    print(
+                        f"版本号仍是 v{__version__}，但已安装提交 "
+                        f"{installed_commit[:7]} 落后于 main ({main_sha[:7]}) ← 有更新！"
+                    )
+                    print()
+                    print(_UPDATE_INSTRUCTIONS)
+                    return "update_available"
+
+        if latest:
+            ahead = _commits_main_ahead_of_tag(latest)
+            if ahead is not None:
+                ahead_by, tip = ahead
+                if ahead_by > 0:
+                    tip_note = f" ({tip})" if tip else ""
+                    print(
+                        f"发布版版本号已是最新 (v{latest})，但 main 在发布之后还有 "
+                        f"{ahead_by} 个提交{tip_note}。"
+                    )
+                    print(
+                        "若是通过 docs/update.md 的 main.zip 安装的，需要 force-reinstall "
+                        "才能拉到这些提交（版本号不变时 pip --upgrade 是空操作）。"
+                    )
+                    print()
+                    print(_UPDATE_INSTRUCTIONS)
+                    return "update_available"
+
         print("✅ 已是最新版本")
         return "up_to_date"
 
