@@ -32,18 +32,50 @@ Update Agent Reach to the latest version, refresh upstream tools, migrate from r
 agent-reach check-update
 ```
 
-If it says "已是最新版本", skip to Step 4 (verify). Otherwise continue.
+`check-update` compares **version strings** only. `main` often moves ahead
+while `pyproject.toml` still declares the same version, so "已是最新版本" does
+not prove the installed code matches `main`. Unless the user only wants tagged
+releases, continue with Step 2 anyway — it is safe to re-run.
 
 ### Step 2: Update Agent Reach package
 
+First find out **where the running package actually lives** — do not guess
+from which directories exist (an empty `~/.agent-reach-venv` stub can exist
+next to a real user-site install):
+
 ```bash
-pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip
+python3 -c "import agent_reach, os; print(os.path.dirname(agent_reach.__file__))"
+which agent-reach
 ```
 
-> If pip complains about `externally-managed-environment` (PEP 668), the user
-> originally installed via pipx or a venv — use the matching command:
-> `pipx install --force https://github.com/Panniantong/agent-reach/archive/main.zip`
-> or activate `~/.agent-reach-venv` first.
+Then use the command that matches that location:
+
+| Install location | Update command |
+|---|---|
+| pipx (`~/.local/share/pipx/venvs/agent-reach/...` or `~/.local/pipx/...`) | `pipx install --force https://github.com/Panniantong/agent-reach/archive/main.zip` |
+| `~/.agent-reach-venv/...` (only if `agent_reach` is really inside it) | `~/.agent-reach-venv/bin/python -m pip install --upgrade --force-reinstall --no-deps <URL>` |
+| user site (`~/.local/lib/python3.X/site-packages`) | `python3 -m pip install --user --upgrade --force-reinstall --no-deps <URL>` |
+| anything else (system / other venv) | `python3 -m pip install --upgrade --force-reinstall --no-deps <URL>` |
+
+`<URL>` = `https://github.com/Panniantong/agent-reach/archive/main.zip`
+
+> **Why `--force-reinstall --no-deps`?** A plain `pip install --upgrade <URL>`
+> prints `Requirement already satisfied` and installs nothing whenever `main`
+> still declares the same version as the installed copy — even if `main` has
+> many new commits. `--force-reinstall` makes pip replace the package files;
+> `--no-deps` keeps it from reinstalling every dependency. If `main` added new
+> dependencies, follow up with the same command without
+> `--force-reinstall --no-deps` to pull them in.
+>
+> If pip complains about `externally-managed-environment` (PEP 668) for a
+> user-site install, add `--break-system-packages` to the user-site command —
+> it only writes to the user site, not the system Python.
+
+Verify the update really landed (the file listing should show today's date):
+
+```bash
+python3 -c "import agent_reach, os; print(os.path.dirname(agent_reach.__file__))" | xargs ls -l --time-style=long-iso | head -5
+```
 
 ### Step 3: Refresh upstream tools
 

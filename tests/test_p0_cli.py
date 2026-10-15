@@ -1053,6 +1053,19 @@ def test_update_guide_preserves_ytdlp_default_extra():
     assert "pipx install --force 'yt-dlp[default]'" in update_line
 
 
+def test_update_guide_forces_reinstall_and_covers_user_site():
+    """Step 2 must not be a no-op when main keeps the same version (#803)."""
+    guide = (
+        Path(__file__).resolve().parents[1] / "docs" / "update.md"
+    ).read_text(encoding="utf-8")
+    step2 = guide.split("### Step 2", 1)[1].split("### Step 3", 1)[0]
+
+    assert "--force-reinstall --no-deps" in step2
+    assert "pip install --user" in step2
+    assert "import agent_reach, os" in step2
+    assert "pip install --upgrade https://" not in step2
+
+
 def test_mcporter_install_adds_exa_to_home_scope(monkeypatch):
     """Installer config remains available across working directories."""
     import shutil
