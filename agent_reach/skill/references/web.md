@@ -31,8 +31,10 @@ mcporter call web-reader.webReader url="https://example.com" return_format="text
 
 ## RSS (feedparser)
 
-```python
-python3 -c "
+使用 Agent Reach 的 Python 解释器（包括 pipx / venv 安装），与 `doctor` 检查使用同一份依赖。
+
+```bash
+"$(agent-reach python-path)" -c "
 import feedparser
 for e in feedparser.parse('FEED_URL').entries[:5]:
     print(f'{e.title} — {e.link}')
