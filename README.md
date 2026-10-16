@@ -116,6 +116,7 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 | 📘 **Facebook** | — | 搜索、主页、Feed、群组列表 | 桌面装 OpenCLI（复用 Chrome 登录态） |
 | 📷 **Instagram** | — | 用户搜索、Profile、用户最近帖子、Explore | 桌面装 OpenCLI（复用 Chrome 登录态） |
 | 📕 **小红书** | — | 搜索、阅读、评论 | OpenCLI 只用用户已有 Chrome 会话；MCP/存量工具用 Cookie-Editor |
+| 🧵 **Threads** | 公开主页 + 帖子正文（Jina Reader） | —（搜索待 OpenCLI 上游支持） | 无需配置 |
 | 💼 **LinkedIn** | Jina Reader 读公开页面 | Profile 详情、公司页面、职位搜索 | 告诉 Agent「帮我配 LinkedIn」 |
 | 🎯 **Boss直聘** | CDP 链路体检 | 搜索岗位 + JD 全文（专用真 Chrome） | 告诉 Agent「帮我配 Boss直聘」；Agent 打开专用 Chrome，你手动登录 |
 | 💻 **V2EX** | 热门帖子、节点帖子、帖子详情+回复、用户信息 | — | 无需配置 |
@@ -172,7 +173,7 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 3. **按授权安装与配置** — 仅在显式传入 `--system` 时安装依赖并通过 MCP 接入 Exa
 4. **检测环境** — 判断是本地电脑还是服务器，给出对应的配置建议
 5. **按授权注册 SKILL.md** — 仅在显式 `--system` 时写入 Agent 的 skills 目录；默认检查不改文件
-6. **问你要不要更多** — 默认只激活 6 个零配置渠道；小红书、Twitter、Reddit、Facebook、Instagram 这些需要登录态的，Agent 会列菜单问你要哪些，点名才装
+6. **问你要不要更多** — 默认只激活 7 个零配置渠道；小红书、Twitter、Reddit、Facebook、Instagram 这些需要登录态的，Agent 会列菜单问你要哪些，点名才装
 
 安装完之后，`agent-reach doctor` 一条命令告诉你每个渠道的状态、当前走哪条路。
 </details>
@@ -234,6 +235,7 @@ channels/
 | Reddit | [OpenCLI](https://github.com/jackwener/opencli)（桌面） | [rdt-cli](https://github.com/public-clis/rdt-cli) | 匿名接口已被封、官方 API 审批制——只剩登录态路线 |
 | Facebook | [OpenCLI](https://github.com/jackwener/opencli)（桌面） | — | Graph API/Groups API 权限收紧；浏览器登录态是当前最实用路径 |
 | Instagram | [OpenCLI](https://github.com/jackwener/opencli)（桌面） | 官方 Graph API（Business/Creator + 审批） | instaloader 类路径不稳定；OpenCLI 复用真实浏览器会话 |
+| Threads | [Jina Reader](https://github.com/jina-ai/reader) | — | OpenCLI 暂无 Threads 适配器；公开页面无需登录即可读 |
 | YouTube 字幕 + 搜索 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | — | 154K Star，YouTube 仍是最佳（注意：不再用于 B站） |
 | B站 | [bili-cli](https://github.com/public-clis/bilibili-cli) | OpenCLI ▸ 搜索 API | yt-dlp 被 B站风控 412 封死（2026-06 实测），bili-cli 无登录可搜可读 |
 | 搜全网 | [Exa](https://exa.ai) via [mcporter](https://github.com/nicobailon/mcporter) | — | AI 语义搜索，MCP 接入免 Key |
