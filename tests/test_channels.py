@@ -13,6 +13,7 @@ from agent_reach.channels import get_all_channels, get_channel
 from agent_reach.channels.bilibili import BilibiliChannel
 from agent_reach.channels.facebook import FacebookChannel
 from agent_reach.channels.instagram import InstagramChannel
+from agent_reach.channels.threads import ThreadsChannel
 from agent_reach.channels.v2ex import V2EXChannel
 from agent_reach.channels.xiaohongshu import XiaoHongShuChannel
 from agent_reach.channels.xueqiu import XueqiuChannel
@@ -35,6 +36,7 @@ class TestChannelRegistry:
         assert "twitter" in names
         assert "facebook" in names
         assert "instagram" in names
+        assert "threads" in names
         assert "v2ex" in names
 
 
@@ -105,6 +107,22 @@ class TestOpenCLISiteChannels:
         assert status == "warn"
         assert ch.active_backend is None
         assert "Chrome 扩展" in msg
+
+
+class TestThreadsChannel:
+    def test_can_handle_threads_urls(self):
+        ch = ThreadsChannel()
+        assert ch.can_handle("https://www.threads.com/@zuck")
+        assert ch.can_handle("https://www.threads.com/@zuck/post/DeZtrvAEfEr")
+        assert ch.can_handle("https://www.threads.net/@zuck")
+        assert not ch.can_handle("https://www.instagram.com/zuck/")
+
+    def test_check_is_zero_config_jina_reader(self):
+        ch = ThreadsChannel()
+        status, msg = ch.check()
+        assert status == "ok"
+        assert ch.active_backend == "Jina Reader"
+        assert "r.jina.ai" in msg
 
 
 class TestV2EXChannel:

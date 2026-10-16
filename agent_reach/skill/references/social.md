@@ -1,6 +1,6 @@
 # 社交媒体 & 社区
 
-小红书、Twitter/X、B站、V2EX、Reddit、Facebook、Instagram。
+小红书、Twitter/X、B站、V2EX、Reddit、Facebook、Instagram、Threads。
 
 ## 小红书 / XiaoHongShu（多后端）
 
@@ -299,3 +299,17 @@ opencli instagram saved --limit 20 -f yaml
 ```
 
 > 要求 Chrome 打开且装了 OpenCLI 扩展，并已登录 instagram.com。`instagram search` 是用户搜索；读帖子需要先确定 username，再用 `instagram user USERNAME`。若出现 429 / login required，先让用户在 Chrome 里重新登录并降低频率。
+
+## Threads（Jina Reader，零配置，仅公开内容）
+
+Threads 目前只走 Jina Reader 读取未登录可见的公开页面。OpenCLI 尚无 Threads 适配器（[jackwener/OpenCLI#2564](https://github.com/jackwener/OpenCLI/issues/2564)），所以**不支持搜索、不保证完整回复**。`threads.net` 是旧域名，会跳转到 `threads.com`。
+
+```bash
+# 用户主页 + 最近公开帖子
+curl -s https://r.jina.ai/https://www.threads.com/@zuck
+
+# 单条帖子正文（URL 形如 /@USER/post/SHORTCODE）
+curl -s https://r.jina.ai/https://www.threads.com/@zuck/post/DeZtrvAEfEr
+```
+
+> 未登录时 Threads 只渲染少量帖子；输出里点赞/回复/转发/引用数是无标签的连续数字。需要按关键词找 Threads 内容时，改用 Exa 全网搜索并限定 `site:threads.com`。
