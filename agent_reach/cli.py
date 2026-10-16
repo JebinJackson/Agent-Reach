@@ -182,6 +182,8 @@ def main():
     # ── watch ──
     sub.add_parser("watch", help="Quick health check + update check (for scheduled tasks)")
 
+    sub.add_parser("python-path", help="Print the Python interpreter used by Agent Reach")
+
     # ── version ──
     sub.add_parser("version", help="Show version")
 
@@ -230,6 +232,10 @@ def main():
     if not args.command:
         parser.print_help()
         sys.exit(0)
+
+    if args.command == "python-path":
+        print(sys.executable)
+        return
 
     if args.command == "version":
         print(f"Agent Reach v{__version__}")
