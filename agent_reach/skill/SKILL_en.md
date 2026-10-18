@@ -172,3 +172,7 @@ If a channel needs setup, fetch the install guide:
 https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 
 The user only provides cookies / one extension click; the agent does the rest.
+
+## Optional bounded social reading
+
+For an explicitly chosen, separately configured four-platform reader with local OCR and coverage reporting, see [the optional Social Read reference](references/social-read.md). Existing routes and Doctor behavior are unchanged; no automatic installation, login, credential import or fallback after denial.
