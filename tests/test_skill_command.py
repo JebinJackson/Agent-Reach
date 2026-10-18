@@ -38,6 +38,21 @@ class TestSkillCommand(unittest.TestCase):
         self.assertNotIn("exa.get_code_context_exa", search_reference)
         self.assertNotIn("get_code_context_exa(", search_reference)
 
+    def test_instagram_reference_treats_429_as_rate_limit_not_login(self):
+        """HTTP 429 from Instagram is endpoint throttling; re-login and retries do not help."""
+        social_reference = (
+            importlib.resources.files("agent_reach")
+            .joinpath("skill", "references", "social.md")
+            .read_text(encoding="utf-8")
+        )
+        instagram = social_reference.split("## Instagram", 1)[1]
+
+        self.assertNotIn("若出现 429 / login required，先让用户在 Chrome 里重新登录", instagram)
+        self.assertIn("HTTP 429", instagram)
+        self.assertIn("不要", instagram)
+        self.assertIn("jackwener/opencli#2553", instagram)
+        self.assertIn("opencli instagram explore", instagram)
+
     def test_mcporter_examples_use_shell_safe_named_arguments(self):
         """Packaged commands must survive PowerShell and POSIX parsing."""
         root = Path(__file__).resolve().parents[1]

@@ -298,4 +298,20 @@ opencli instagram explore --limit 20 -f yaml
 opencli instagram saved --limit 20 -f yaml
 ```
 
-> 要求 Chrome 打开且装了 OpenCLI 扩展，并已登录 instagram.com。`instagram search` 是用户搜索；读帖子需要先确定 username，再用 `instagram user USERNAME`。若出现 429 / login required，先让用户在 Chrome 里重新登录并降低频率。
+> 要求 Chrome 打开且装了 OpenCLI 扩展，并已登录 instagram.com。`instagram search` 是用户搜索；读帖子需要先确定 username，再用 `instagram user USERNAME`。
+
+### 已知限制（OpenCLI 2.0.0，2026-10 实测）
+
+Instagram 已对网页会话限流或下线了 OpenCLI 适配器依赖的私有接口，**已登录也会失败**：
+
+| 命令 | 状态 | 原因 |
+|---|---|---|
+| `explore` / `saved` | 可用 | — |
+| `profile` / `followers` / `following` | 失败：HTTP 429 | `web_profile_info` 按账号限流 |
+| `user` | 失败：返回 HTML 而不是 JSON | `feed/user/<name>/username/` 已下线（jackwener/opencli#2456） |
+| `search` | 失败：HTTP 404 | `web/search/topsearch` 已下线 |
+| `whoami` | 可能 HTTP 429 | `users/<id>/info` 按账号限流 |
+
+- 报 **HTTP 429**：这是接口级限流，**不要**让用户重新登录，也**不要**反复重试（只会延长限流）。告诉用户该命令暂不可用，改用 `explore`，或跳过 Instagram。
+- 报 **AUTH_REQUIRED / login required** 才是真的没登录，这时再让用户在 Chrome 里登录 instagram.com。
+- 上游修复进度：jackwener/opencli#2553（含实测证据和可用的页面读取方案）。修复发布后升级 OpenCLI 即可，Agent Reach 无需改动。

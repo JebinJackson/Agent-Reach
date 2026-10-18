@@ -126,6 +126,8 @@ opencli facebook search "query" -f yaml
 opencli facebook groups -f yaml
 opencli instagram search "query" -f yaml       # 搜用户
 opencli instagram user USERNAME -f yaml        # 读指定用户最近帖子
+opencli instagram explore --limit 20 -f yaml   # 推荐流（OpenCLI 2.0 下 Instagram 唯一稳定可用的读取命令）
+# Instagram 报 HTTP 429 是接口限流，不要重试或让用户重新登录；见 references/social.md「已知限制」
 ```
 
 ## 环境检查

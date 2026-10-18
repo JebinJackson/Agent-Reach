@@ -109,6 +109,8 @@ opencli facebook search "query" -f yaml
 opencli facebook groups -f yaml
 opencli instagram search "query" -f yaml       # user search
 opencli instagram user USERNAME -f yaml        # recent posts from one user
+opencli instagram explore --limit 20 -f yaml   # explore feed (the reliable Instagram read on OpenCLI 2.0)
+# Instagram HTTP 429 is endpoint rate limiting: do not retry or ask for re-login; see references/social.md
 ```
 
 ## Environment check
