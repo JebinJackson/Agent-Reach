@@ -3,6 +3,7 @@
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -188,6 +189,43 @@ def test_transcribe_script_accepts_http_xiaoyuzhou_hosts(
     )
 
     assert result.returncode != 0
+    assert curl_log.exists()
+    _assert_work_dir_cleaned(temp_root)
+
+
+def test_transcribe_script_skips_python_that_exists_but_cannot_run(
+    tmp_path, bash_executable
+):
+    # Windows ships a Microsoft Store "python3" alias that is on PATH but only
+    # prints an install hint and exits 49, so `command -v` alone picks it.
+    env, curl_log, temp_root, bash_env = _script_env(
+        tmp_path,
+        "#!/bin/sh\nprintf 'called\\n' >> \"$CURL_LOG\"\nreturn 42\n",
+    )
+    _append_bash_function(
+        bash_env,
+        "python3",
+        "echo 'Python was not found; run without arguments to install "
+        "from the Microsoft Store' >&2\nreturn 49\n",
+    )
+    real_python = _bash_path(Path(sys.executable))
+    _append_bash_function(bash_env, "python", f'"{real_python}" "$@"\n')
+
+    result = subprocess.run(
+        [
+            bash_executable,
+            TRANSCRIBE_SCRIPT.relative_to(ROOT).as_posix(),
+            "https://www.xiaoyuzhoufm.com/episode/123",
+            _bash_path(tmp_path / "out.txt"),
+        ],
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+        cwd=ROOT,
+    )
+
+    assert "仅支持 xiaoyuzhoufm.com" not in result.stderr
     assert curl_log.exists()
     _assert_work_dir_cleaned(temp_root)
 
