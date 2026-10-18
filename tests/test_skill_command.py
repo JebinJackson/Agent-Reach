@@ -179,6 +179,35 @@ class TestSkillCommand(unittest.TestCase):
             # _install_skill may or may not find dirs depending on mock; just ensure no crash
             # The important test is that the function runs without error
 
+    def test_mcporter_examples_only_call_servers_agent_reach_configures(self):
+        """Skill docs must not call MCP servers that no installer path sets up."""
+        root = Path(__file__).resolve().parents[1]
+        source = "\n".join(
+            path.read_text(encoding="utf-8") for path in (root / "agent_reach").rglob("*.py")
+        )
+        configured = set(re.findall(r"config add ([a-z0-9_-]+)", source))
+        configured |= set(re.findall(r'"config",\s*"add",\s*"([a-z0-9_-]+)"', source))
+        self.assertIn("exa", configured)
+
+        server_call = re.compile(r"mcporter call ([A-Za-z0-9_-]+)\.")
+        for markdown_file in (root / "agent_reach" / "skill").rglob("*.md"):
+            for server in server_call.findall(markdown_file.read_text(encoding="utf-8")):
+                with self.subTest(markdown_file=markdown_file.name, server=server):
+                    self.assertIn(server, configured)
+
+    def test_rss_example_runs_feedparser_from_agent_reach_interpreter(self):
+        """pipx isolates feedparser, so a bare system python3 cannot import it."""
+        web_reference = (
+            importlib.resources.files("agent_reach")
+            .joinpath("skill", "references", "web.md")
+            .read_text(encoding="utf-8")
+        )
+        rss = web_reference.split("## RSS", 1)[1]
+
+        self.assertNotRegex(rss, r'python3 -c "\s*import feedparser')
+        self.assertIn("pipx environment --value PIPX_LOCAL_VENVS", rss)
+        self.assertIn("Scripts/python.exe", rss)
+
     def test_uninstall_skill_removes_dir(self):
         """_uninstall_skill should remove skill directories."""
         with tempfile.TemporaryDirectory() as tmpdir:
