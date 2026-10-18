@@ -124,7 +124,7 @@ twitter likes
 1. 直接重试一次（偶发失败常见）：`twitter search "query" -n 10`
 2. 升级后再试：`pipx upgrade twitter-cli && twitter search "query" -n 10`
 3. 换 OpenCLI 备选（桌面，复用浏览器登录态）：`opencli twitter search "query" -f yaml`
-4. 都不行就改用 `twitter feed` / `twitter user-posts @somebody` 等稳定命令绕路
+4. 都不行就改用 `twitter feed` / `twitter user-posts @somebody` 等稳定命令绕路（OpenCLI 对应 `opencli twitter timeline` / `opencli twitter tweets somebody`）
 
 ### 重要注意事项
 
@@ -135,7 +135,13 @@ twitter likes
 >
 > **IP 风控**: 不要在 VPS/数据中心 IP 上频繁调用，尤其是 followers/following，有封号风险。使用住宅代理或本地环境。
 >
-> **OpenCLI 备选**: 桌面装了 OpenCLI 的话，`opencli twitter search/article/user-posts -f yaml` 全套可用（浏览器登录态，无需 cookie 环境变量）。
+> **OpenCLI 备选**: 桌面装了 OpenCLI 的话，`opencli twitter search/tweets/thread/article/profile -f yaml` 全套可用（浏览器登录态，无需 cookie 环境变量）。OpenCLI 2.0 没有 `user-posts`，用户时间线用 `tweets`：
+>
+> ```bash
+> opencli twitter tweets username --limit 20 -f yaml     # 用户最近推文（对应 twitter-cli 的 user-posts）
+> opencli twitter search "query" --from username -f yaml # 某用户的相关推文
+> opencli twitter thread TWEET_ID -f yaml                # 原推 + 全部回复
+> ```
 >
 > **输出格式**: 建议用 `--yaml` 或 `--json` 获得结构化输出，对 AI agent 更友好。
 

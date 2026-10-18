@@ -109,6 +109,24 @@ class TestSkillCommand(unittest.TestCase):
         self.assertNotIn("linkedin-scraper.", linkedin_section)
         self.assertNotIn("--transport streamable-http", linkedin_section)
 
+    def test_opencli_twitter_examples_use_existing_subcommands(self):
+        """OpenCLI 2.0 dropped `twitter user-posts`; documented subcommands must exist."""
+        # Read-only subcommands listed by `opencli twitter --help` on OpenCLI 2.0.0.
+        opencli_twitter_reads = {
+            "article", "bookmark-folder", "bookmark-folders", "bookmarks", "collection",
+            "followers", "following", "likes", "list-tweets", "lists", "notifications",
+            "profile", "search", "thread", "timeline", "trending", "tweets", "whoami",
+        }
+        root = Path(__file__).resolve().parents[1] / "agent_reach" / "skill"
+        mention = re.compile(r"opencli twitter ([a-z][a-z-]*(?:/[a-z][a-z-]*)*)")
+
+        for markdown_file in root.rglob("*.md"):
+            content = markdown_file.read_text(encoding="utf-8")
+            for match in mention.finditer(content):
+                for subcommand in match.group(1).split("/"):
+                    with self.subTest(markdown_file=markdown_file.name, subcommand=subcommand):
+                        self.assertIn(subcommand, opencli_twitter_reads)
+
     def test_boss_setup_is_agent_driven_and_reproducible(self):
         root = Path(__file__).resolve().parents[1]
         install_doc = (root / "docs" / "install.md").read_text(encoding="utf-8")
