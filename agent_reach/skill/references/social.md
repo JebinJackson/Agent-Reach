@@ -2,6 +2,8 @@
 
 小红书、Twitter/X、B站、V2EX、Reddit、Facebook、Instagram。
 
+可选的四平台统一阅读、图片 OCR 和覆盖范围说明见 [social-read.md](social-read.md)。仅在用户明确选择且已配置时使用；不改变默认后端。
+
 ## 小红书 / XiaoHongShu（多后端）
 
 小红书有三个后端，**先跑 `agent-reach doctor --json` 看 xiaohongshu 的 `active_backend` 是哪个**，再用对应命令组。
