@@ -79,7 +79,7 @@ agent-reach read https://www.v2ex.com/t/123   # 按链接自动选渠道
 ### ✅ 在你用之前，你可能想知道
 
 - **适用于哪些 Agent？** 任何能执行命令行的 Agent。`agent-reach setup` 会放一份使用说明（skill，就是告诉 AI 怎么用 Agent Reach 的说明文件），Codex、OpenCode 等直接能读到；Claude Code、OpenClaw、Cursor 等装了的话，会在它们的 skill 目录里放一个指向这份说明的链接（相当于快捷方式）。
-- **要花钱吗？** 程序和后端工具都是开源免费的。只有两处可能要你自己的 Key：播客/视频转文字用 Groq（有免费额度）或 OpenAI 的 Whisper 接口。
+- **要花钱吗？** 程序和后端工具都是开源免费的。只有两处可能要你自己的 Key：播客/视频转文字用 Groq（有免费额度）或 OpenAI 的 Whisper 接口；网页搜索和阅读可选加一个 DeepSeek Key，作为 Exa / Jina 都失败时的备选（按次计费）。
 - **会碰我的浏览器和账号吗？** 不会读你自己浏览器里的 Cookie，也从不替你登录。需要登录的渠道，由你本人在 Agent Reach 专用浏览器里登录。详见[安全性](#安全性)。
 - **支持哪些系统？** 优先保证 macOS，Linux 可用，Windows 尽力支持。
 - **要我自己装别的软件吗？** 不用。某个渠道要用的东西（Node.js、Chrome、ffmpeg、浏览器扩展）都由 `agent-reach add` 自己装好，不需要管理员密码。你本人只需要登录，或者提供一个 Key。
@@ -96,7 +96,7 @@ agent-reach read https://www.v2ex.com/t/123   # 按链接自动选渠道
 | github | 默认 | 搜仓库、读仓库/README、读 issue 和 PR（含评论） | 无（装了 `gh` 或配置 token 后额度更高） |
 | youtube | 默认 | 视频信息、搜索、字幕、语音转文字 | 无；转文字需要 Groq 或 OpenAI Key |
 | v2ex | 默认 | 热门、节点、帖子和回复、用户 | 无 |
-| web | 默认 | 网页搜索、网页阅读（保底） | 无 |
+| web | 默认 | 网页搜索、网页阅读（保底） | 无；可选 DeepSeek Key 作为备选后端 |
 | bilibili | 默认 | 搜索、视频信息、热门、字幕 | 无；字幕需要登录（扫码） |
 | xiaohongshu | 可选 | 搜笔记、读笔记 | 浏览器 + 登录 |
 | reddit | 可选 | 搜索、读帖子和评论、看版块 | 浏览器 + 登录 |
@@ -164,7 +164,7 @@ flowchart LR
 | "卸载 Agent Reach" | `agent-reach uninstall` | 见下面"安全性"里的卸载说明 |
 | "让另一个 AI 也能用" | `agent-reach skill link <它的 skill 目录>` | 给不在自动名单里的 AI 也放一个说明链接 |
 
-其他：`agent-reach check [渠道] --text` 真实跑一遍测试；`agent-reach configure <项>` 保存 `groq-key`、`openai-key`、`proxy`、`github-token`。
+其他：`agent-reach check [渠道] --text` 真实跑一遍测试；`agent-reach configure <项>` 保存 `groq-key`、`openai-key`、`deepseek-key`、`proxy`、`github-token`。
 
 出错时，JSON 里的 `error.code` 会告诉 Agent 下一步该做什么。每种错误和状态的处理办法见 [troubleshooting.md](docs/troubleshooting.md)。
 
@@ -174,7 +174,7 @@ flowchart LR
 
 ### 🔌 每个平台 = 首选 + 备选的有序后端列表
 
-每个渠道的每个动作都有一个有序的后端列表。比如 `bilibili read` 先用 bili-cli，失败了自动换 B站公开接口；`web read` 先用 Jina Reader，再用 Exa。返回的 JSON 里 `backend` 字段会写明这次实际用的是谁。
+每个渠道的每个动作都有一个有序的后端列表。比如 `bilibili read` 先用 bili-cli，失败了自动换 B站公开接口；`web read` 先用 Jina Reader，再用 Exa，配了 DeepSeek Key 时最后用 DeepSeek。返回的 JSON 里 `backend` 字段会写明这次实际用的是谁。
 
 平台改版、工具失效是常态。换后端只是调整这个列表，Agent 的调用方式不变。
 

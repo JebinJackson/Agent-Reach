@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Web — search (Exa) and read any page (Jina Reader, Exa fallback).
+"""Web — search (Exa, DeepSeek) and read any page (Jina Reader, Exa, DeepSeek).
 
 This channel is a fallback: agents that already have working built-in web
 search / fetch should use those first.
@@ -7,10 +7,13 @@ search / fetch should use those first.
 
 import json
 import re
+import urllib.error
 import urllib.request
 
+from agent_reach.config import Config
 from agent_reach.runtime.result import (
     BAD_INPUT,
+    NEED_SETUP,
     RATE_LIMITED,
     UPSTREAM_BROKEN,
     ReachError,
@@ -26,6 +29,10 @@ _MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 _ANTIBOT_SCAN_BYTES = 4096
 _EXA_MCP = "https://mcp.exa.ai/mcp"
 _EXA_HEADER_RE = re.compile(r"^(Title|URL|Published|Author):\s*(.*)$")
+_DEEPSEEK_API = "https://api.deepseek.com/v1/tools"
+# DeepSeek rejects queries over 128 characters and counts outside 1-50.
+_DEEPSEEK_MAX_QUERY_CHARS = 128
+_DEEPSEEK_MAX_COUNT = 50
 
 
 def _is_antibot_page(body: bytes) -> bool:
@@ -113,6 +120,40 @@ def _parse_exa_text(text: str) -> list:
     return items
 
 
+def _deepseek_call(tool: str, payload: dict, timeout: float) -> dict:
+    """POST to DeepSeek's search / fetch API (needs the user's DeepSeek API key)."""
+    key = Config(read_only=True).get("deepseek_api_key")
+    if not key:
+        raise ReachError(
+            NEED_SETUP,
+            "DeepSeek backend needs an API key",
+            hint="Ask the user to run `agent-reach configure deepseek-key` in their own terminal.",
+        )
+    try:
+        raw = http_request(
+            f"{_DEEPSEEK_API}/{tool}",
+            timeout=timeout,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        )
+    except urllib.error.HTTPError as exc:
+        # The generic mapping would suggest `agent-reach update`; these two need the user instead.
+        if exc.code == 401:
+            raise ReachError(
+                NEED_SETUP,
+                "DeepSeek rejected the API key",
+                hint="Ask the user to run `agent-reach configure deepseek-key` with a valid key.",
+            ) from None
+        if exc.code == 402:
+            raise ReachError(
+                UPSTREAM_BROKEN,
+                "DeepSeek account balance is insufficient",
+                hint="Tell the user to top up their DeepSeek account; retrying will not help.",
+            ) from None
+        raise
+    return json.loads(raw.decode("utf-8"))
+
+
 def _parse_jina(url: str, body: str) -> dict:
     title = re.search(r"^Title:\s*(.*)$", body, re.M)
     published = re.search(r"^Published Time:\s*(.*)$", body, re.M)
@@ -133,19 +174,19 @@ class WebChannel(Channel):
     actions = (
         Action(
             "search",
-            "Search the web (Exa semantic search)",
+            "Search the web (Exa semantic search; DeepSeek search with a key)",
             (
                 Param("query", "what to search for"),
                 Param("limit", "max results", required=False, type=int, default=5),
             ),
-            (("exa", "_exa_search"),),
+            (("exa", "_exa_search"), ("deepseek", "_deepseek_search")),
             live_test={"query": "yt-dlp github repository", "limit": 2},
         ),
         Action(
             "read",
             "Read a web page as clean text",
             (Param("target", "page URL"),),
-            (("jina", "_jina_read"), ("exa", "_exa_read")),
+            (("jina", "_jina_read"), ("exa", "_exa_read"), ("deepseek", "_deepseek_read")),
             live_test={"target": "https://example.com"},
         ),
     )
@@ -198,3 +239,26 @@ class WebChannel(Channel):
         except RuntimeError as exc:
             raise ReachError(UPSTREAM_BROKEN, str(exc)) from None
         return [_parse_jina(url, body)]
+
+    def _deepseek_search(self, *, query: str, limit: int, timeout: float) -> list:
+        count = max(1, min(limit, _DEEPSEEK_MAX_COUNT))
+        data = _deepseek_call("search", {"query": query[:_DEEPSEEK_MAX_QUERY_CHARS], "count": count}, timeout)
+        return [
+            make_item(
+                title=r.get("title"),
+                url=r.get("url"),
+                author=r.get("site_name"),
+                published_at=r.get("date"),
+                # summary is the longer abstract meant for models; snippet is a short UI blurb.
+                text=r.get("summary") or r.get("snippet"),
+                raw=r,
+            )
+            for r in data.get("results") or []
+        ][:limit]
+
+    def _deepseek_read(self, *, target: str, timeout: float) -> list:
+        url = _public_url(target)
+        data = _deepseek_call("fetch", {"url": url}, timeout)
+        if not (data.get("content") or "").strip():
+            raise ReachError(UPSTREAM_BROKEN, "DeepSeek returned no content")
+        return [make_item(title=data.get("title"), url=url, text=data["content"].strip())]

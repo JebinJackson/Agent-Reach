@@ -81,7 +81,7 @@ Every command prints the same JSON shape, so the agent doesn't have to learn eac
 ### ✅ Before you start, you might want to know
 
 - **Which agents?** Any agent that can run shell commands. `agent-reach setup` places one copy of the usage instructions (a skill) that Codex, OpenCode and others read directly, and links it into the skill folders of Claude Code, OpenClaw, Cursor and others when they are installed.
-- **Does it cost money?** The program and its backends are open source and free. The only keys you may need are for speech-to-text: Groq (has a free tier) or OpenAI Whisper.
+- **Does it cost money?** The program and its backends are open source and free. The only keys you may need are for speech-to-text: Groq (has a free tier) or OpenAI Whisper. Web search and page reading can optionally use a DeepSeek key as the last fallback after Exa / Jina (billed per call).
 - **Does it touch my browser or accounts?** It never reads your own browser's cookies and never logs in for you. For login channels, you log in yourself in the dedicated Agent Reach browser. See [Security](#security).
 - **Which OS?** macOS first, Linux works, Windows best effort.
 - **Do I have to install anything else?** No. Whatever a channel needs (Node.js, Chrome, ffmpeg, the browser extension) is installed by `agent-reach add` itself, with no admin password. All you do is log in or provide a key.
@@ -98,7 +98,7 @@ Every command prints the same JSON shape, so the agent doesn't have to learn eac
 | github | default | search repos, read a repo/README, read issues and PRs with comments | nothing (higher limits with `gh` or a token) |
 | youtube | default | video info, search, subtitles, speech-to-text | nothing; speech-to-text needs a Groq or OpenAI key |
 | v2ex | default | hot topics, nodes, topics with replies, users | nothing |
-| web | default | web search, page reading (fallback) | nothing |
+| web | default | web search, page reading (fallback) | nothing; an optional DeepSeek key adds a fallback backend |
 | bilibili | default | search, video info, trending, subtitles | nothing; subtitles need a login (QR scan) |
 | xiaohongshu | optional | search notes, read a note | browser + login |
 | reddit | optional | search, read posts with comments, browse a subreddit | browser + login |
@@ -166,7 +166,7 @@ Just tell your agent in plain words; it runs the command for you:
 | "Uninstall Agent Reach" | `agent-reach uninstall` | see Uninstall under Security below |
 | "Let my other AI use it too" | `agent-reach skill link <its skills folder>` | link the instructions for an AI not covered automatically |
 
-Also: `agent-reach check [channel] --text` runs live tests; `agent-reach configure <key>` saves `groq-key`, `openai-key`, `proxy`, `github-token`.
+Also: `agent-reach check [channel] --text` runs live tests; `agent-reach configure <key>` saves `groq-key`, `openai-key`, `deepseek-key`, `proxy`, `github-token`.
 
 When something fails, `error.code` in the JSON tells the agent what to do next. Every error code and status is explained in [troubleshooting.md](troubleshooting.md).
 
@@ -176,7 +176,7 @@ When something fails, `error.code` in the JSON tells the agent what to do next. 
 
 ### 🔌 Every platform = an ordered backend list (primary + fallbacks)
 
-Each action of each channel has an ordered list of backends. `bilibili read` tries bili-cli first and falls back to Bilibili's public API; `web read` tries Jina Reader, then Exa. The `backend` field in the JSON says which one actually answered.
+Each action of each channel has an ordered list of backends. `bilibili read` tries bili-cli first and falls back to Bilibili's public API; `web read` tries Jina Reader, then Exa, then DeepSeek when a DeepSeek key is configured. The `backend` field in the JSON says which one actually answered.
 
 Platforms change and tools break all the time. Switching backends only reorders that list; the way the agent calls Agent Reach stays the same.
 

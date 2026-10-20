@@ -600,6 +600,8 @@ def test_configure_saves_known_keys_only(env):
 
     manage.configure("groq-key", "gsk_test")
     assert Config(read_only=True).get("groq_api_key") == "gsk_test"
+    manage.configure("deepseek-key", "sk-test")
+    assert Config(read_only=True).get("deepseek_api_key") == "sk-test"
     with pytest.raises(ReachError):
         manage.configure("twitter-cookies", "x")
 

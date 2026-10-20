@@ -735,7 +735,13 @@ def uninstall(dry_run: bool = False) -> dict:
 
 # ── configure ──
 
-CONFIG_KEYS = {"groq-key": "groq_api_key", "openai-key": "openai_api_key", "proxy": "proxy", "github-token": "github_token"}
+CONFIG_KEYS = {
+    "groq-key": "groq_api_key",
+    "openai-key": "openai_api_key",
+    "deepseek-key": "deepseek_api_key",
+    "proxy": "proxy",
+    "github-token": "github_token",
+}
 
 
 def configure(key: str, value: str) -> dict:
