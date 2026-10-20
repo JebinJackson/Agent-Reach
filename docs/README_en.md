@@ -1,11 +1,11 @@
 <h1 align="center">👁️ Agent Reach</h1>
 
 <p align="center">
-  <strong>Give your AI Agent one-click access to the entire internet</strong>
+  <strong>Let your AI agent reach the parts of the internet it can't reach on its own</strong>
 </p>
 
 <p align="center">
-  The most reliable access path for each platform — chosen, installed, and health-checked for you. Backends come and go; you won't notice.
+  Login-walled platforms, what's inside videos and podcasts, Chinese platforms, clean structured data. One command, one JSON shape.
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <a href="#quick-start">Quick Start</a> · <a href="../README.md">中文</a> · <a href="README_ja.md">日本語</a> · <a href="README_ko.md">한국어</a> · <a href="#supported-platforms">Platforms</a> · <a href="#design-philosophy">Philosophy</a>
+  <a href="#quick-start">Quick Start</a> · <a href="../README.md">中文</a> · <a href="#supported-platforms">Platforms</a> · <a href="#design-philosophy">Philosophy</a>
 </p>
 
 > **No token or crypto affiliation:** Agent Reach has no official token, coin, investment product, fee-claim program, wallet connection, or Solana/Pump.fun project. Any crypto project using the Agent Reach name, GitHub URL, or author identity is not affiliated with this repository. Do not connect a wallet or claim fees based on messages, posts, or links that say otherwise.
@@ -59,253 +59,170 @@
 
 ## Why Agent Reach?
 
-AI Agents can already access the internet — but "can go online" is barely the start.
+CLI agents such as Claude Code, Codex, Hermes Agent and OpenClaw come with web search and page fetching, but they mostly can't reach:
 
-The most valuable information lives across social and niche platforms: Twitter discussions, Reddit feedback, YouTube tutorials, XiaoHongShu reviews, Bilibili videos, GitHub activity… **These are where information density is highest**, but each platform has its own barriers:
+- **Login-walled platforms**: XiaoHongShu, Twitter/X, Reddit, LinkedIn, Boss Zhipin... a plain fetch gets nothing or a login page.
+- **What's inside video and audio**: YouTube and Bilibili subtitles, full transcripts of Xiaoyuzhou podcasts.
+- **Chinese platforms**: Bilibili, XiaoHongShu, V2EX, Xueqiu, Xiaoyuzhou, which general search covers poorly.
+- **Clean structured data**: Xueqiu quotes, V2EX topics and replies, GitHub repos and issues, as fields instead of HTML to guess from.
 
-| Pain Point | Reality |
-|------------|---------|
-| Twitter API | Pay-per-use, moderate usage ~$215/month |
-| Reddit | Server IPs get 403'd |
-| XiaoHongShu | Login required to browse |
-| Bilibili | Blocks overseas/server IPs |
+Agent Reach installs the open-source tools behind these platforms, keeps them up to date, health-checks them, and gives the agent one entry point:
 
-To connect your Agent to these platforms, you'd have to find tools, install dependencies, and debug configs — one by one.
-
-**Agent Reach turns this into one command:**
-
-```
-Install Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+```bash
+agent-reach channels                          # which channels exist and what each can do
+agent-reach bilibili search "LLM"             # agent-reach <channel> <action> [args]
+agent-reach read https://www.v2ex.com/t/123   # picks the channel from the link
 ```
 
-Copy that to your Agent. A few minutes later, it can read tweets, search Reddit, and watch Bilibili.
+Every command prints the same JSON shape, so the agent doesn't have to learn each tool or parse each tool's output.
 
-**Already installed? Update in one command:**
-
-```
-Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md
-```
+> The `web` channel (web search and page reading) is only a fallback, for when the agent's own search or fetch is missing or fails.
 
 ### ✅ Before you start, you might want to know
 
-| | |
-|---|---|
-| 💰 **Completely free** | All tools are open source, all APIs are free. The only possible cost is a server proxy ($1/month) — local computers don't need one |
-| 🔒 **Privacy safe** | Cookies stay local. Never uploaded. Fully open source — audit anytime |
-| 🔄 **Kept up to date** | Every platform routes through a primary + fallback backend list. When an access path dies, we switch to the next — you won't notice (June 2026: Bilibili 412-blocked yt-dlp → switched to bili-cli, zero action on your side) |
-| 🤖 **Works with any Agent** | Claude Code, OpenClaw, Cursor, Windsurf… any Agent that can run commands |
-| 🩺 **Built-in diagnostics** | `agent-reach doctor` — one command shows what works, what doesn't, and how to fix it |
+- **Which agents?** Any agent that can run shell commands. `agent-reach setup` places one copy of the usage instructions (a skill) that Codex, OpenCode and others read directly, and links it into the skill folders of Claude Code, OpenClaw, Cursor and others when they are installed.
+- **Does it cost money?** The program and its backends are open source and free. The only keys you may need are for speech-to-text: Groq (has a free tier) or OpenAI Whisper.
+- **Does it touch my browser or accounts?** It never reads your own browser's cookies and never logs in for you. For login channels, you log in yourself in the dedicated Agent Reach browser. See [Security](#security).
+- **Which OS?** macOS first, Linux works, Windows best effort.
+- **Do I have to install anything else?** No. Whatever a channel needs (Node.js, Chrome, ffmpeg, the browser extension) is installed by `agent-reach add` itself, with no admin password. All you do is log in or provide a key.
+- **How do I hear about new versions?** Agent Reach checks at most once a day in the background. When there is a new version, your agent tells you in plain words what changed and asks whether to update; it updates only if you say yes.
 
 ---
 
 ## Supported Platforms
 
-| Platform | Capabilities | Setup | Notes |
-|----------|-------------|:-----:|-------|
-| 🌐 **Web** | Read | Zero config | Any URL → clean Markdown ([Jina Reader](https://github.com/jina-ai/reader) ⭐9.8K) |
-| 🐦 **Twitter/X** | Read · Search | Cookie | Cookie unlocks search, timeline, tweet reading, articles ([twitter-cli](https://github.com/public-clis/twitter-cli)) |
-| 📕 **XiaoHongShu** | Read · Search · Comments | OpenCLI / MCP | OpenCLI uses only an existing user-controlled Chrome session; MCP/legacy tools use a manual Cookie-Editor export |
-| 📘 **Facebook** | Search · Profiles · Feed · Groups list | OpenCLI | Desktop only: [OpenCLI](https://github.com/jackwener/opencli) reuses your logged-in Chrome session |
-| 📷 **Instagram** | User search · Profiles · Recent posts · Explore | OpenCLI | Desktop only: [OpenCLI](https://github.com/jackwener/opencli) reuses your logged-in Chrome session |
-| 💼 **LinkedIn** | Jina Reader (public pages) | Full profiles, companies, job search | Tell your Agent "help me set up LinkedIn" |
-| 💻 **V2EX** | Hot topics · Node topics · Topic detail + replies · User profile | Zero config | Public JSON API, no auth required. Great for tech community content |
-| 📈 **Xueqiu (雪球)** | Stock quotes · Search · Hot posts · Hot stocks | Browser cookie | Tell your Agent "help me set up Xueqiu" |
-| 🎙️ **Xiaoyuzhou Podcast** | Transcription | Free API key | Podcast audio → full text transcript via Groq Whisper (free) |
-| 🔍 **Web Search** | Search | Auto-configured | Auto-configured during install, free, no API key ([Exa](https://exa.ai) via [mcporter](https://github.com/nicepkg/mcporter)) |
-| 📦 **GitHub** | Read · Search | Zero config | [gh CLI](https://cli.github.com) powered. Public repos work immediately. `gh auth login` unlocks Fork, Issue, PR |
-| 📺 **YouTube** | Read · **Search** | Zero config | Subtitles + search across 1800+ video sites ([yt-dlp](https://github.com/yt-dlp/yt-dlp) ⭐148K) |
-| 📺 **Bilibili** | Read · **Search** | Zero config | Search + video detail via [bili-cli](https://github.com/public-clis/bilibili-cli) (no login needed); subtitles via [OpenCLI](https://github.com/jackwener/opencli). yt-dlp is 412-blocked by Bilibili and no longer used here |
-| 📡 **RSS** | Read | Zero config | Any RSS/Atom feed ([feedparser](https://github.com/kurtmckee/feedparser) ⭐2.3K) |
-| 📖 **Reddit** | Search · Read | OpenCLI / Cookie | No zero-config path (anonymous endpoints blocked). Desktop: [OpenCLI](https://github.com/jackwener/opencli) via browser session; or [rdt-cli](https://github.com/public-clis/rdt-cli) + cookie |
+`agent-reach channels` is the live source of truth; this table reflects the current release.
 
-> **Setup levels:** Zero config = install and go · Auto-configured = handled during install · mcporter = needs MCP service · Cookie = export from browser · Proxy = $1/month
+| Channel | Level | What it does | Needs |
+|---|---|---|---|
+| github | default | search repos, read a repo/README, read issues and PRs with comments | nothing (higher limits with `gh` or a token) |
+| youtube | default | video info, search, subtitles, speech-to-text | nothing; speech-to-text needs a Groq or OpenAI key |
+| v2ex | default | hot topics, nodes, topics with replies, users | nothing |
+| web | default | web search, page reading (fallback) | nothing |
+| bilibili | default | search, video info, trending, subtitles | nothing; subtitles need a login (QR scan) |
+| xiaohongshu | optional | search notes, read a note | browser + login |
+| reddit | optional | search, read posts with comments, browse a subreddit | browser + login |
+| linkedin | optional | job search | login |
+| boss | optional | job and JD search | browser + login |
+| xiaoyuzhou | optional | full podcast transcripts | Groq key |
+| xueqiu | optional | real-time quotes, stock search, hot posts, hot stocks | quotes need nothing; hot posts/stocks need a browser login |
+| twitter | experimental | search tweets, profiles, user tweets, threads | browser + login |
+| facebook | experimental | search, profiles | browser + login |
+| instagram | experimental | user search, profiles, user posts | browser + login |
+
+- **default**: works right after install; you can remove one (`agent-reach remove <channel>`) and updates won't add it back.
+- **optional**: turn on with `agent-reach add <channel>`; Agent Reach installs everything it needs into its own folder.
+- **experimental**: works, but the platform fights automation harder and it can break at any time.
+- **browser**: the Agent Reach browser, a separate Chrome window. If the machine has no Chrome, Agent Reach downloads its own copy; it also installs the OpenCLI extension in it by itself (on Windows you click "Add to Chrome" once in the window that opens). After that it opens by itself when needed (the first open takes about 40 seconds) and closes after 10 minutes without use.
 
 ---
 
 ## Quick Start
 
-> ⚠️ **OpenClaw users: enable `exec` permission first**
->
-> Agent Reach relies on the Agent running shell commands (`pip install`, `mcporter`, `twitter`, etc.). If your OpenClaw uses the default `messaging` tool profile, the Agent won't be able to run them. **Enable `exec` before installing:**
->
-> ```bash
-> openclaw config set tools.profile "coding"
-> ```
-> Or set `"tools": { "profile": "coding" }` in `~/.openclaw/openclaw.json`. After changing it, restart the Gateway (`openclaw gateway restart`) and start a new conversation. Other platforms (Claude Code, Cursor, Windsurf, etc.) are not affected.
-
-Copy this to your AI Agent (Claude Code, OpenClaw, Cursor, etc.):
+Send this to your agent:
 
 ```
 Install Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 ```
 
-The Agent installs the Python package, checks your environment, and tells you what's ready. System-level changes require an explicit `--system` flag.
+The agent does the rest by following [install.md](install.md). Along the way you may be asked to:
 
-> 🔄 **Already installed?** Update in one command:
-> ```
-> Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md
-> ```
+- **Let it run commands**: if the agent says it can't run commands, turn on command execution in its settings.
+- **Allow installing uv**: uv is a small tool that installs command-line programs; no admin password needed. The agent installs it first if it's missing and tells you.
+- **Pick optional channels**: afterwards the agent tells you what works now (web, YouTube, GitHub, V2EX, Bilibili) and what else you can add. Pick now, or later just say "add Xiaohongshu"; one command sets it up.
 
-> 🛡️ **Safe by default:** `agent-reach install` checks the machine without installing system packages or writing configuration:
-> ```
-> Safely check and install Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
-> ```
-> Use `agent-reach install --system` only after explicitly approving system changes.
+The only thing you do yourself is log in; the agent never logs in for you and never asks for your password:
 
-<details>
-<summary>Manual install</summary>
+- Xiaohongshu, Reddit, Twitter and the like: log in yourself in the Agent Reach browser.
+- Bilibili: subtitles need a QR-scan login; search and video info work without it.
 
-```bash
-pip install https://github.com/Panniantong/agent-reach/archive/main.zip
-agent-reach install --env=auto
+> ⚠️ The PyPI package named `agent-reach` is NOT this project. Don't install it from PyPI; use the GitHub URL in install.md.
+
+Prefer doing it by hand? Run the commands in [install.md](install.md) yourself.
+
+```mermaid
+flowchart LR
+    A[Agent] -->|agent-reach channel action| B[Agent Reach]
+    B --> C{try backends in order}
+    C -->|preferred| D[upstream tool 1]
+    C -->|fallback on failure| E[upstream tool 2]
+    D --> F[one JSON envelope]
+    E --> F
+    F --> A
 ```
-</details>
-
-<details>
-<summary>Install as a Skill (Claude Code / OpenClaw / any agent with Skills support)</summary>
-
-```bash
-npx skills add Panniantong/Agent-Reach@agent-reach
-```
-
-After the Skill is installed, the Agent will auto-detect whether `agent-reach` CLI is available and install it if needed.
-
-> If you explicitly install external tools with `agent-reach install --system`, the skill is registered automatically. The default read-only check leaves existing files unchanged.
->
-> Prefer an English-only skill file? Set an English locale or export `AGENT_REACH_LANG=en`
-> before running `agent-reach install --env=auto --system` or `agent-reach skill --install`.
-> The installed file is always written as `SKILL.md`, so switching languages means rerunning
-> the install command with the new locale and replacing the previously installed skill file.
-</details>
 
 ---
 
-## Works Out of the Box
+## After Install: Managing It
 
-No configuration needed — just tell your Agent:
+Just tell your agent in plain words; it runs the command for you:
 
-- "Read this link" → `curl https://r.jina.ai/URL` for any web page
-- "What's this GitHub repo about?" → `gh repo view owner/repo`
-- "What does this video cover?" → `yt-dlp --dump-json URL` for subtitles
-- "Read this tweet" → set `TWITTER_AUTH_TOKEN` / `TWITTER_CT0`, then run `twitter tweet URL`
-- "Subscribe to this RSS" → `feedparser` to parse feeds
-- "Search GitHub for LLM frameworks" → `gh search repos "LLM framework"`
+| You say | Agent runs | What it does |
+|---|---|---|
+| "How is Agent Reach doing?" | `agent-reach doctor --text` | status of every channel: not_added / needs_setup / needs_login / unverified / ready / broken, and which ones broke since the last check |
+| "Add Xiaohongshu" / "Remove Xiaohongshu" | `agent-reach add` / `remove <channel>` | turn a channel on and install everything it needs; you only log in or provide a key / turn it off and clear its login and private tools (default channels too) |
+| "My Bilibili login expired" / "Log out" | `agent-reach login` / `logout <channel>` | log in (you do it) / forget the login |
+| "Upgrade Agent Reach" | `agent-reach update` | update the program, every channel's tools (to their latest versions) and the skill in one go, and tell you anything left to do, see [update.md](update.md) |
+| "Uninstall Agent Reach" | `agent-reach uninstall` | see Uninstall under Security below |
+| "Let my other AI use it too" | `agent-reach skill link <its skills folder>` | link the instructions for an AI not covered automatically |
 
-**No commands to remember.** The Agent reads SKILL.md and knows what to call.
+Also: `agent-reach check [channel] --text` runs live tests; `agent-reach configure <key>` saves `groq-key`, `openai-key`, `proxy`, `github-token`.
 
----
-
-## Unlock on Demand
-
-Don't use it? Don't configure it. Every step is optional.
-
-### 🍪 Cookies — Free, 2 minutes
-
-Tell your Agent "help me configure Twitter cookies" — it'll guide you through a
-manual Cookie-Editor export. Agent Reach saves the values for `doctor` to check
-whether credentials are present; `doctor` does not run `twitter status`.
-Direct `twitter` commands still require `TWITTER_AUTH_TOKEN` and `TWITTER_CT0`
-in their process environment.
-
-For XiaoHongShu, Agent Reach never logs the user in or reads browser cookies.
-OpenCLI may use only an existing Chrome session explicitly controlled by the
-user. If none exists, do not automate login; use a manual Cookie-Editor export
-with xiaohongshu-mcp or a legacy tool. `agent-reach configure xhs-cookies`
-does not inject cookies into OpenCLI or Chrome.
-
-### 🌐 Proxy — $1/month, restricted networks only
-
-Most users need no proxy. If your network blocks Reddit/Twitter (e.g. mainland China) get one ([Webshare](https://webshare.io) recommended, $1/month) and send the address to your Agent — it saves it and exports HTTP(S)_PROXY when calling those tools.
-
-> Reddit needs a logged-in session either way — OpenCLI rides your browser session, or rdt-cli after `rdt login`. Bilibili works via bili-cli without a proxy.
-
----
-
-## Status at a Glance
-
-```
-$ agent-reach doctor
-
-👁️  Agent Reach Status
-========================================
-
-✅ Ready to use:
-  ✅ GitHub repos and code — public repos readable and searchable
-  ✅ YouTube video subtitles — yt-dlp
-  ✅ Bilibili search & video detail — bili-cli (subtitles via OpenCLI)
-  ✅ RSS/Atom feeds — feedparser
-  ✅ Web pages (any URL) — Jina Reader API
-
-🔍 Search (free Exa key to unlock):
-  ⬜ Web semantic search — sign up at exa.ai for free key
-
-🔧 Configurable:
-  ⚠️  Twitter/X — doctor checks only that explicit credentials exist; direct CLI still needs its environment variables
-  ⬜ Reddit posts and comments — needs login: rdt-cli after `rdt login`, or OpenCLI browser session
-  ⬜ XiaoHongShu notes — OpenCLI needs an existing user-controlled session; otherwise use Cookie-Editor with MCP/legacy tools
-  ⬜ Facebook / Instagram — desktop: OpenCLI browser session
-
-Status: 6/9 channels available
-```
+When something fails, `error.code` in the JSON tells the agent what to do next. Every error code and status is explained in [troubleshooting.md](troubleshooting.md).
 
 ---
 
 ## Design Philosophy
 
-**Agent Reach is a capability layer, not yet another tool.**
-
-It sits one level above any specific implementation — it handles **selection, installation, health checks, and routing**, not the reading itself. Reading is done by your Agent calling upstream tools directly; there is no wrapper layer.
-
-Every time you spin up a new Agent, you spend time finding tools, installing deps, and debugging configs — what reads Twitter? How do you log into Reddit? What replaces a discontinued XiaoHongShu CLI? Every time, you re-do the same work. Agent Reach does one simple thing: **the most reliable access path for each platform, chosen, installed, and health-checked for you. Access paths come and go (in March 2026 a batch of single-platform CLIs went unmaintained — we re-routed), so you don't have to care.**
-
 ### 🔌 Every platform = an ordered backend list (primary + fallbacks)
 
-Switching access paths means reordering the list, not rewriting code. `agent-reach doctor` tells you **which backend each platform is currently using**.
+Each action of each channel has an ordered list of backends. `bilibili read` tries bili-cli first and falls back to Bilibili's public API; `web read` tries Jina Reader, then Exa. The `backend` field in the JSON says which one actually answered.
 
+Platforms change and tools break all the time. Switching backends only reorders that list; the way the agent calls Agent Reach stays the same.
+
+### 📌 Kept current, private installs
+
+The tools Agent Reach installs (OpenCLI, bili-cli, boss-agent-cli, mcporter and others) live in `~/.agent-reach/tools/`, away from your global environment. Versions are not pinned: each install takes the latest version, and `agent-reach update` upgrades them to the latest even when Agent Reach itself has no new release. Known-bad upstream versions are excluded in a new Agent Reach release; `agent-reach doctor` shows the version actually installed for each tool.
+
+### 🩺 Working means live-tested
+
+`doctor` only checks offline; `check` makes a real request to the platform. A channel is marked `ready` only after it passes a live check.
+
+### One output shape
+
+Every agent command prints one JSON object:
+
+```json
+{"schema_version": 1, "ok": true, "channel": "v2ex", "action": "hot", "backend": "v2ex-api",
+ "items": [{"title": "...", "url": "...", "text": "..."}], "meta": {}, "error": null}
 ```
-channels/
-├── web.py          → Jina Reader
-├── twitter.py      → twitter-cli ▸ OpenCLI ▸ bird
-├── youtube.py      → yt-dlp
-├── github.py       → gh CLI
-├── bilibili.py     → bili-cli ▸ OpenCLI ▸ search API (yt-dlp retired, 412-blocked)
-├── reddit.py       → OpenCLI ▸ rdt-cli (no zero-config path, login required)
-├── facebook.py     → OpenCLI (desktop browser session)
-├── instagram.py    → OpenCLI (desktop browser session)
-├── xiaohongshu.py  → OpenCLI ▸ xiaohongshu-mcp ▸ xhs-cli
-├── linkedin.py     → linkedin-mcp ▸ Jina Reader
-├── rss.py          → feedparser
-├── exa_search.py   → Exa via mcporter
-└── __init__.py     → Channel registry (for doctor checks)
+
+On failure `ok` is `false` and `error` holds a `code` (`NEED_SETUP` / `NEED_LOGIN` / `UPSTREAM_BROKEN` / `TIMEOUT` / `RATE_LIMITED` / `NOT_FOUND` / `BAD_INPUT`), a `message`, and a `hint` for the agent.
+
+---
+
+## Security
+
+- **Everything lives under `~/.agent-reach/`**: `config.yaml` (keys and proxy), `state.json`, `tools/` (private tool installs), `sessions/` (logins of CLI tools), `browser/` (the dedicated browser profile), `mcporter.json`. The one exception is the skill: one copy in `~/.agents/skills/agent-reach/`, with only links to it in other AIs' skill folders.
+- **Agent Reach never logs in for you and never reads your own browser's cookies.** For login channels you log in yourself, in the Agent Reach browser or in the tool's own login flow (e.g. Bilibili QR scan).
+- **The Agent Reach browser's debugging port listens on loopback only** (127.0.0.1:9222), but while it is open any local process can use it to control that browser. That's why it closes itself after 10 minutes without use.
+- **Use a secondary account for login channels.** Platforms may restrict accounts used for automated access.
+- **Don't paste API keys into chat**: run `agent-reach configure groq-key` in your own terminal; input is hidden.
+
+### 🗑️ Uninstall
+
+```bash
+agent-reach uninstall --dry-run   # see what would be removed
+agent-reach uninstall             # remove the tools, logins, config and skill Agent Reach installed
 ```
 
-Each channel file **actually probes** its candidate backends in order (not just checking that a command exists) — the first fully working one becomes the active backend, and broken ones come with a fix prescription. The actual reading and searching is done by the Agent calling the upstream tools directly.
-
-### Current Tool Choices
-
-| Scenario | Primary | Fallback | Why |
-|----------|---------|----------|-----|
-| Read web pages | [Jina Reader](https://github.com/jina-ai/reader) | — | Free, no API key needed |
-| Read tweets | [twitter-cli](https://github.com/public-clis/twitter-cli) | [OpenCLI](https://github.com/jackwener/opencli) | Reliable search in real-world tests; OpenCLI falls back on your browser session |
-| Reddit | [OpenCLI](https://github.com/jackwener/opencli) (desktop) | [rdt-cli](https://github.com/public-clis/rdt-cli) | Anonymous endpoints blocked, official API gated — logged-in sessions are the only route left |
-| Facebook | [OpenCLI](https://github.com/jackwener/opencli) (desktop) | — | Graph/Groups API access is heavily restricted; browser sessions are the practical route |
-| Instagram | [OpenCLI](https://github.com/jackwener/opencli) (desktop) | Official Graph API (Business/Creator + review) | Instaloader-style paths are unstable; OpenCLI reuses the real browser session |
-| YouTube subtitles + search | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | — | 154K stars, still the best for YouTube (no longer used for Bilibili) |
-| Bilibili | [bili-cli](https://github.com/public-clis/bilibili-cli) | OpenCLI ▸ search API | yt-dlp is 412-blocked by Bilibili (verified June 2026); bili-cli searches and reads without login |
-| Search the web | [Exa](https://exa.ai) via [mcporter](https://github.com/nicobailon/mcporter) | — | AI semantic search, MCP integration, no API key |
-| GitHub | [gh CLI](https://cli.github.com) | — | Official tool, full API after auth |
-| Read RSS | [feedparser](https://github.com/kurtmckee/feedparser) | — | Python ecosystem standard |
-| XiaoHongShu | [OpenCLI](https://github.com/jackwener/opencli) (desktop) | [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) (server) ▸ xhs-cli | OpenCLI uses only an existing user-controlled session; other backends use a manual Cookie-Editor export |
-| LinkedIn | [mcp-server-linkedin](https://github.com/stickerdaniel/linkedin-mcp-server) | Jina Reader | MCP server, browser automation |
-| Xiaoyuzhou Podcast | `transcribe.sh` | — | `bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh <URL>` |
-
-> 📌 These are the *current* choices, re-verified regularly on real machines. When a path dies we switch to the next — `agent-reach doctor` always tells you which one is active.
+Close the Agent Reach browser first. The output ends with the command that removes the program itself (e.g. `uv tool uninstall agent-reach`).
 
 ---
 
 ## Credits
 
-[twitter-cli](https://github.com/public-clis/twitter-cli) · [rdt-cli](https://github.com/public-clis/rdt-cli) · [xhs-cli](https://github.com/jackwener/xiaohongshu-cli) · [bili-cli](https://github.com/public-clis/bilibili-cli) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [Jina Reader](https://github.com/jina-ai/reader) · [Exa](https://exa.ai) · [mcporter](https://github.com/nicobailon/mcporter) · [feedparser](https://github.com/kurtmckee/feedparser) · [mcp-server-linkedin](https://github.com/stickerdaniel/linkedin-mcp-server)
+[OpenCLI](https://github.com/jackwener/opencli) · [bili-cli](https://github.com/public-clis/bilibili-cli) · [boss-agent-cli](https://github.com/can4hou6joeng4/boss-agent-cli) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [Jina Reader](https://github.com/jina-ai/reader) · [Exa](https://exa.ai) · [mcporter](https://github.com/nicobailon/mcporter) · [mcp-server-linkedin](https://github.com/stickerdaniel/linkedin-mcp-server)
 
 ## Contact
 
