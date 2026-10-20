@@ -46,6 +46,15 @@ All notable changes to this project will be documented in this file.
 - code 37 按原始文案分类：环境异常为 `ENVIRONMENT_RISK` 并立即停止；只有明确
   token/stoken 过期才允许一次刷新。专用 Chrome profile 应长期复用并降低频率。
 
+#### 📕 小红书 — 图片 OCR / 视频转写
+
+- 新增 `agent-reach xhs-enrich "<note-url>"`（也接受 OpenCLI 输出的笔记 JSON）：
+  OpenCLI 取笔记与媒体，图片走本地 Tesseract，视频走现有 `transcribe` 路由。
+- 单个媒体失败只记 `error`，笔记与其他结果保留；媒体仅接受小红书 CDN URL，
+  单文件上限 25 MB。
+- 需要 Tesseract（`chi_sim`+`eng`）与 Groq/OpenAI key；`--no-ocr` /
+  `--no-transcribe` 可关闭。
+
 ## [1.3.1] - 2026-03-27
 
 ### 🐛 Bug Fixes / 修复

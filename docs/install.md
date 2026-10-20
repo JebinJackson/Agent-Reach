@@ -234,6 +234,9 @@ agent-reach install --system --channels opencli
 > **存量用户（xhs-cli）：** 已装好的 xhs-cli 继续作为备选后端工作
 > （上游 2026-03 起停更，不推荐新装）；认证仍使用上面的 Cookie-Editor
 > 手工导出流程。
+>
+> **图片 OCR / 视频转写：** `agent-reach xhs-enrich "<note-url>" -o note.json`
+> （图片需本机 Tesseract `chi_sim`+`eng`；视频需 Groq 或 OpenAI key）
 
 **Facebook / Instagram（桌面 OpenCLI）:**
 > 这两个平台走 OpenCLI：复用用户自己的 Chrome 登录态，不保存账号密码，不走 Meta Graph API 审批流。服务器/无桌面环境不推荐支持。
