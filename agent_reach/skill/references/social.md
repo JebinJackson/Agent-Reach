@@ -23,7 +23,16 @@ opencli xiaohongshu feed -f yaml
 
 # 用户主页公开笔记
 opencli xiaohongshu user USER_ID -f yaml
+
+# 图片 OCR + 视频转写（需完整 URL，含 xsec_token）
+agent-reach xhs-enrich "NOTE_URL" -o enriched.json
+# 只做视频转写（没有本地 Tesseract 时）
+agent-reach xhs-enrich "NOTE_URL" --no-ocr
 ```
+
+`xhs-enrich` 让 OpenCLI 读笔记和媒体，图片走本地 Tesseract（`chi_sim`+`eng`），
+视频走 `transcribe`。单个媒体失败只记 `error`，笔记和其他结果保留；媒体只接受
+小红书 CDN URL，单文件上限 25 MB。
 
 > 要求 Chrome 打开且装了 OpenCLI 扩展。OpenCLI 只使用用户已经存在且明确控制
 > 的 Chrome 会话；Agent Reach 不替用户登录，也不读取浏览器 Cookie。

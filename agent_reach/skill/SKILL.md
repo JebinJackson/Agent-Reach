@@ -121,6 +121,9 @@ rdt search "query" --limit 10            # 存量/服务器
 # 小红书（桌面首选 OpenCLI）
 opencli xiaohongshu search "query" -f yaml
 
+# 图片 OCR / 视频转写（需 Tesseract；转写需 Groq/OpenAI key）
+agent-reach xhs-enrich "NOTE_URL" -o enriched.json
+
 # Facebook / Instagram（桌面 OpenCLI，复用浏览器登录态）
 opencli facebook search "query" -f yaml
 opencli facebook groups -f yaml

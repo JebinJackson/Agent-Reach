@@ -12,8 +12,11 @@ Usage:
 import argparse
 import json
 import os
+import shutil
 import sys
+import tempfile
 import time
+from pathlib import Path
 
 from agent_reach import __version__
 
@@ -177,6 +180,24 @@ def main():
     p_tr.add_argument("-o", "--output", default=None,
                       help="Write transcript to a file instead of stdout")
 
+    # ── xhs enrich ──
+    p_xhs = sub.add_parser(
+        "xhs-enrich",
+        help="Add image OCR and video transcripts to a XiaoHongShu note",
+    )
+    p_xhs.add_argument(
+        "source",
+        help="Full note URL (with xsec_token) or a saved OpenCLI note JSON",
+    )
+    p_xhs.add_argument("--no-ocr", action="store_true", help="Skip image OCR")
+    p_xhs.add_argument(
+        "--no-transcribe", action="store_true", help="Skip video transcription"
+    )
+    p_xhs.add_argument(
+        "--ocr-language", default="chi_sim+eng", help="Tesseract languages"
+    )
+    p_xhs.add_argument("-o", "--output", default=None, help="Write JSON to a file")
+
     sub.add_parser("check-update", help="Check for new versions and changes")
 
     # ── watch ──
@@ -255,6 +276,8 @@ def main():
         _cmd_format(args)
     elif args.command == "transcribe":
         _cmd_transcribe(args)
+    elif args.command == "xhs-enrich":
+        _cmd_xhs_enrich(args)
 
 
 # ── Command handlers ────────────────────────────────
@@ -1609,6 +1632,141 @@ def _cmd_transcribe(args):
     if args.output:
         Path(args.output).write_text(text + "\n", encoding="utf-8")
         print(f"✅ Transcript written to {args.output}")
+    else:
+        print(text)
+
+
+def _opencli_entry(package_dir: Path) -> Path | None:
+    """Resolve a package's ``main`` file from its package.json."""
+    try:
+        manifest = json.loads(
+            (package_dir / "package.json").read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError):
+        return None
+    main = manifest.get("main") if isinstance(manifest, dict) else None
+    entry = package_dir / str(main) if main else None
+    return entry if entry is not None and entry.is_file() else None
+
+
+def _opencli_command(args: list[str]) -> list[str]:
+    """Build an OpenCLI argv, entering through node on Windows.
+
+    The npm shim is a .cmd, so cmd.exe re-splits the command line and a note
+    URL's ``&xsec_source=`` would start a second command.  Running node on the
+    package entry keeps the URL intact.
+    """
+    from agent_reach.backends import OPENCLI_PACKAGE
+    from agent_reach.xhs_multimodal import XhsMultimodalError
+
+    opencli = shutil.which("opencli")
+    if os.name == "nt":
+        shim = shutil.which("opencli.cmd")
+        if shim:
+            package = Path(shim).parent / "node_modules" / OPENCLI_PACKAGE
+            entry = _opencli_entry(package)
+            if entry is not None:
+                return [shutil.which("node") or "node", str(entry), *args]
+    if not opencli:
+        raise XhsMultimodalError(
+            "OpenCLI not found; run `agent-reach install --system --channels opencli`"
+        )
+    return [opencli, *args]
+
+
+def _run_opencli(args: list[str], timeout: int):
+    """Run one OpenCLI command and return its parsed JSON output."""
+    import subprocess
+
+    from agent_reach.xhs_multimodal import XhsMultimodalError
+
+    try:
+        process = subprocess.run(
+            _opencli_command(args),
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise XhsMultimodalError(f"OpenCLI timed out after {timeout}s") from exc
+    except OSError as exc:
+        raise XhsMultimodalError(f"OpenCLI could not start: {exc}") from exc
+    if process.returncode:
+        detail = (process.stderr.strip() or process.stdout.strip())[:300]
+        raise XhsMultimodalError(f"OpenCLI failed: {detail}")
+    try:
+        return json.loads(process.stdout)
+    except json.JSONDecodeError as exc:
+        raise XhsMultimodalError(
+            f"OpenCLI returned non-JSON output: {process.stdout.strip()[:120]}"
+        ) from exc
+
+
+def _cmd_xhs_enrich(args):
+    """Enrich one XHS note with image OCR and video transcripts."""
+    from agent_reach.utils.text import scrub_url_credentials
+    from agent_reach.utils.url import host_matches
+    from agent_reach.xhs_multimodal import (
+        XhsMultimodalError,
+        enrich_note,
+        extract_media,
+        normalize_note_payload,
+    )
+
+    want_media = not (args.no_ocr and args.no_transcribe)
+    source = args.source
+    try:
+        source_path = Path(source)
+        is_file = source_path.is_file()
+        if is_file:
+            note = json.loads(source_path.read_text(encoding="utf-8"))
+        else:
+            if not host_matches(source, "xiaohongshu.com", "xhslink.com"):
+                raise XhsMultimodalError(
+                    "请传入小红书笔记 URL，或 OpenCLI 输出的笔记 JSON 文件"
+                )
+            note = _run_opencli(["xiaohongshu", "note", source, "-f", "json"], 120)
+        note = normalize_note_payload(note)
+        media_files: list[Path] = []
+        media_error = ""
+        with tempfile.TemporaryDirectory(prefix="agent-reach-xhs-") as temp:
+            images, video = extract_media(note)
+            if want_media and not is_file and not images and not video:
+                # Note output carries no media URLs; download has the session.
+                try:
+                    _run_opencli(
+                        [
+                            "xiaohongshu",
+                            "download",
+                            source,
+                            "--output",
+                            temp,
+                            "-f",
+                            "json",
+                        ],
+                        180,
+                    )
+                except XhsMultimodalError as exc:
+                    media_error = str(exc)
+                media_files = [p for p in Path(temp).rglob("*") if p.is_file()]
+            enriched = enrich_note(
+                note,
+                ocr=not args.no_ocr,
+                transcribe_video=not args.no_transcribe,
+                language=args.ocr_language,
+                media_files=media_files,
+            )
+    except (OSError, json.JSONDecodeError, XhsMultimodalError) as exc:
+        print(f"❌ {scrub_url_credentials(exc)}")
+        raise SystemExit(1) from exc
+
+    if media_error:
+        enriched["multimodal"]["media_error"] = scrub_url_credentials(media_error)
+    text = json.dumps(enriched, ensure_ascii=False, indent=2)
+    if args.output:
+        Path(args.output).write_text(text + "\n", encoding="utf-8")
+        print(f"✅ Enriched note written to {args.output}")
     else:
         print(text)
 

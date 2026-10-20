@@ -104,6 +104,9 @@ rdt search "query" --limit 10            # legacy/server
 # XiaoHongShu (desktop prefers OpenCLI)
 opencli xiaohongshu search "query" -f yaml
 
+# Image OCR / video transcript (needs Tesseract; transcript needs a key)
+agent-reach xhs-enrich "NOTE_URL" -o enriched.json
+
 # Facebook / Instagram (desktop OpenCLI, browser session)
 opencli facebook search "query" -f yaml
 opencli facebook groups -f yaml
