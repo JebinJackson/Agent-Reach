@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tests for agent_reach.transcribe — provider routing, fallback, and errors."""
 
+import json
 import subprocess
 from pathlib import Path
 from typing import List
@@ -606,6 +607,13 @@ class TestOrchestrator:
         assert (work / "compressed.m4a").exists()
 
 
+def _write_download_output(cmd, out_dir):
+    audio = out_dir / "source.m4a"
+    audio.write_bytes(b"audio")
+    report_index = cmd.index("--print-to-file") + 2
+    Path(cmd[report_index]).write_text(json.dumps(str(audio)), encoding="utf-8")
+
+
 class TestDownloadAudioSafety:
     def test_rejects_download_that_exceeds_limit(
         self, monkeypatch, tmp_path
@@ -613,8 +621,8 @@ class TestDownloadAudioSafety:
         monkeypatch.setattr(tr, "_require", lambda _binary: None)
         monkeypatch.setattr(tr, "MAX_SOURCE_BYTES", 4)
 
-        def fake_run(_cmd, timeout=600):
-            (tmp_path / "source.m4a").write_bytes(b"audio")
+        def fake_run(cmd, timeout=600):
+            _write_download_output(cmd, tmp_path)
 
         monkeypatch.setattr(tr, "_run", fake_run)
 
@@ -638,7 +646,7 @@ class TestDownloadAudioSafety:
 
         def fake_run(cmd, timeout=600):
             captured["cmd"] = cmd
-            (tmp_path / "source.m4a").write_bytes(b"audio")
+            _write_download_output(cmd, tmp_path)
 
         monkeypatch.setattr(tr, "_run", fake_run)
 
@@ -658,7 +666,7 @@ class TestDownloadAudioSafety:
 
         def fake_run(cmd, timeout=600):
             captured["cmd"] = cmd
-            (tmp_path / "source.m4a").write_bytes(b"audio")
+            _write_download_output(cmd, tmp_path)
 
         monkeypatch.setattr(tr, "_run", fake_run)
 
@@ -681,7 +689,7 @@ class TestDownloadAudioSafety:
 
         def fake_run(cmd, timeout=600):
             captured["cmd"] = cmd
-            (tmp_path / "source.m4a").write_bytes(b"audio")
+            _write_download_output(cmd, tmp_path)
 
         monkeypatch.setattr(tr, "_run", fake_run)
 
@@ -764,7 +772,7 @@ class TestDownloadAudioSafety:
 
         def fake_run(cmd, timeout=600):
             captured["cmd"] = cmd
-            (tmp_path / "source.m4a").write_bytes(b"audio")
+            _write_download_output(cmd, tmp_path)
 
         monkeypatch.setattr(tr, "_run", fake_run)
 
