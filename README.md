@@ -1,3 +1,4 @@
+
 <h1 align="center">👁️ Agent Reach</h1>
 
 <p align="center">
@@ -5,7 +6,7 @@
 </p>
 
 <p align="center">
-  登录墙后的平台、视频和播客里的内容、中文平台、干净的结构化数据，一条命令拿到，统一 JSON 输出
+  登录墙后的平台、视频里的内容、中文平台、干净的结构化数据，一条命令拿到，统一 JSON 输出
 </p>
 
 <p align="center">
@@ -20,7 +21,11 @@
 </p>
 
 <p align="center">
-  <a href="#快速上手">快速开始</a> · <a href="docs/README_en.md">English</a> · <a href="#支持的平台">支持平台</a> · <a href="#设计理念">设计理念</a>
+  <a href="#快速上手">快速开始</a> · <a href="docs/README_en.md">English</a> · <a href="#支持的平台">支持平台</a> · <a href="#设计理念">设计理念</a> · <a href="https://discord.gg/NSZz22R39">Discord</a>
+</p>
+
+<p align="center">
+  <a href="https://discord.gg/NSZz22R39"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&amp;logoColor=white" alt="加入 Agent Reach Discord 社区"></a>
 </p>
 
 ---
@@ -59,12 +64,12 @@
 
 Claude Code、Codex、Hermes Agent、OpenClaw 这类 CLI Agent 自带搜索和网页读取，但下面这些它们基本够不着：
 
-- **要登录才能看的平台**：小红书、Twitter/X、Reddit、LinkedIn、Boss直聘……网页抓不到，或者只能看到登录页。
-- **视频和音频里的内容**：YouTube 和 B站的字幕、小宇宙播客的完整文字稿。
-- **中文平台**：B站、小红书、V2EX、雪球、小宇宙，通用搜索覆盖很差。
+- **需要浏览器会话的功能**：在小红书搜笔记、在 X 查账号动态、读职位详情等，按所选功能复用登录态。能公开读取的内容先用已有搜索和网页工具。
+- **视频里的内容**：YouTube 和 B站的字幕，以及 YouTube 视频的语音转文字。
+- **中文平台**：B站、小红书、V2EX、雪球，通用搜索覆盖很差。
 - **干净的结构化数据**：雪球行情、V2EX 帖子和回复、GitHub 仓库和 issue，直接给字段，不用从 HTML 里猜。
 
-Agent Reach 把这些平台背后的开源工具替你装好、保持最新、定期体检，然后给 Agent 一个统一入口：
+Agent Reach 安装这些平台背后的工具，提供已测依赖与验收流程，然后给 Agent 一个统一入口：
 
 ```bash
 agent-reach channels                          # 有哪些渠道、每个渠道能做什么
@@ -79,10 +84,9 @@ agent-reach read https://www.v2ex.com/t/123   # 按链接自动选渠道
 ### ✅ 在你用之前，你可能想知道
 
 - **适用于哪些 Agent？** 任何能执行命令行的 Agent。`agent-reach setup` 会放一份使用说明（skill，就是告诉 AI 怎么用 Agent Reach 的说明文件），Codex、OpenCode 等直接能读到；Claude Code、OpenClaw、Cursor 等装了的话，会在它们的 skill 目录里放一个指向这份说明的链接（相当于快捷方式）。
-- **要花钱吗？** 程序和后端工具都是开源免费的。只有两处可能要你自己的 Key：播客/视频转文字用 Groq（有免费额度）或 OpenAI 的 Whisper 接口。
-- **会碰我的浏览器和账号吗？** 不会读你自己浏览器里的 Cookie，也从不替你登录。需要登录的渠道，由你本人在 Agent Reach 专用浏览器里登录。详见[安全性](#安全性)。
+- **会碰我的浏览器和账号吗？** 查询默认不弹窗口，会先尝试复用本机已登录的网站，只读复制该站 Cookie，原浏览器不变；不读 Cookie 数据库或密码库。确实需要重新登录时才打开 Reach 专用窗口，由你本人完成。详见[会话配置](agent_reach/skill/references/sessions.md)。
 - **支持哪些系统？** 优先保证 macOS，Linux 可用，Windows 尽力支持。
-- **要我自己装别的软件吗？** 不用。某个渠道要用的东西（Node.js、Chrome、ffmpeg、浏览器扩展）都由 `agent-reach add` 自己装好，不需要管理员密码。你本人只需要登录，或者提供一个 Key。
+- **要我自己装别的软件吗？** `agent-reach add` 会准备 Node、OpenCLI、专用浏览器和插件；已有登录优先复用，确实需要时再登录。
 - **怎么知道有新版本？** Agent Reach 每天最多在后台查一次，有新版本时 Agent 会用大白话告诉你改了什么、问你要不要更新，你同意了才更新。
 
 ---
@@ -98,20 +102,19 @@ agent-reach read https://www.v2ex.com/t/123   # 按链接自动选渠道
 | v2ex | 默认 | 热门、节点、帖子和回复、用户 | 无 |
 | web | 默认 | 网页搜索、网页阅读（保底） | 无 |
 | bilibili | 默认 | 搜索、视频信息、热门、字幕 | 无；字幕需要登录（扫码） |
-| xiaohongshu | 可选 | 搜笔记、读笔记 | 浏览器 + 登录 |
-| reddit | 可选 | 搜索、读帖子和评论、看版块 | 浏览器 + 登录 |
-| linkedin | 可选 | 搜职位 | 登录 |
-| boss | 可选 | 搜职位和 JD | 浏览器 + 登录 |
-| xiaoyuzhou | 可选 | 播客完整转文字 | Groq Key |
+| xiaohongshu | 可选 | 搜笔记、读正文、看评论 | 先查公开笔记；站内与评论路径按需认证 |
+| reddit | 可选 | 搜帖子、读正文、看评论、看版块 | 公开帖子和评论先用已有网页工具；浏览器功能按需登录 |
+| linkedin | 可选 | 搜职位、读职位详情 | 先查公开网页；站内路径按实际结果决定是否登录 |
+| boss | 可选 | 搜职位和 JD | 先查公开职位；站内路径按需认证 |
+| xiaoyuzhou | 可选 | 播客转文字 | Groq Key |
 | xueqiu | 可选 | 实时行情、搜股票、热帖、热股 | 行情免登录；热帖热股需要浏览器登录 |
-| twitter | 实验 | 搜推文、用户资料、用户推文、读推文串 | 浏览器 + 登录 |
-| facebook | 实验 | 搜索、主页资料 | 浏览器 + 登录 |
+| twitter | 实验 | 搜推文、用户资料、用户推文、读推文串 | 先查公开索引；动态和回复路径按需认证 |
+| facebook | 实验 | 搜索、主页资料 | 先查公开索引；主页路径按需认证 |
 | instagram | 实验 | 搜用户、主页资料、用户帖子 | 浏览器 + 登录 |
 
 - **默认**：装好就能用；不想要也可以去掉（`agent-reach remove <渠道>`），以后更新不会再加回来。
 - **可选**：用 `agent-reach add <渠道>` 按需开启，它需要的一切 Agent Reach 都会装到自己的目录里。
 - **实验**：能用，但平台反爬更严，可能随时失效。
-- **浏览器**：指 Agent Reach 专用浏览器，一个独立的 Chrome 窗口。电脑上没有 Chrome 的话 Agent Reach 会自己下载一个；里面要用的 OpenCLI 扩展也会自己装好（Windows 上需要你在弹出的窗口里点一次"添加至 Chrome"）。之后需要时它会自己打开（第一次打开大约要 40 秒），10 分钟没用就自动关掉。
 
 ---
 
@@ -120,7 +123,7 @@ agent-reach read https://www.v2ex.com/t/123   # 按链接自动选渠道
 把这句话发给你的 Agent：
 
 ```
-帮我安装 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+帮我安装 Agent Reach，按 docs/install.md 优先复用已有登录态。
 ```
 
 剩下的 Agent 会照着 [install.md](docs/install.md) 自己做完。过程中你可能会被问到：
@@ -131,12 +134,13 @@ agent-reach read https://www.v2ex.com/t/123   # 按链接自动选渠道
 
 需要你本人做的只有登录，Agent 从不替你登录，也不会要你的密码：
 
-- 小红书、Reddit、Twitter 等：在 Agent Reach 专用浏览器里自己登录。
+- 小红书、Reddit、Twitter 等：先复用专用浏览器中已保存的登录；需要继承日常 Chrome 登录时先授权按站点导入。
 - B站：字幕要扫码登录；不登录也能搜索和看视频信息。
 
 > ⚠️ PyPI 上叫 `agent-reach` 的包不是本项目，请勿从 PyPI 安装，只用 install.md 里的 GitHub 地址。
 
 想自己动手也一样，照着 [install.md](docs/install.md) 敲命令就行。
+
 
 ```mermaid
 flowchart LR
@@ -160,7 +164,7 @@ flowchart LR
 | "看看 Agent Reach 状态" | `agent-reach doctor --text` | 每个渠道的状态：未开启 / 待配置 / 待登录 / 未验证 / 可用 / 故障，并标出"上次还好、现在坏了"的渠道 |
 | "加上小红书" / "去掉小红书" | `agent-reach add` / `remove <渠道>` | 开启渠道并装好它需要的一切，你只需登录或提供 Key / 关闭渠道并清掉它的登录和专用工具（默认渠道也能去掉） |
 | "B站登录过期了" / "退出登录" | `agent-reach login` / `logout <渠道>` | 登录（你本人操作）/ 清除登录 |
-| "升级 Agent Reach" | `agent-reach update` | 一次更新程序、各渠道的工具（升到最新）和 skill，并告诉你还需要做什么，见 [update.md](docs/update.md) |
+| "升级 Agent Reach" | `agent-reach update` | 一次更新程序、各渠道的工具（有已测版本的保持已测版本，其他用兼容范围内的最新版）和 skill，并告诉你还需要做什么，见 [update.md](docs/update.md) |
 | "卸载 Agent Reach" | `agent-reach uninstall` | 见下面"安全性"里的卸载说明 |
 | "让另一个 AI 也能用" | `agent-reach skill link <它的 skill 目录>` | 给不在自动名单里的 AI 也放一个说明链接 |
 
@@ -176,11 +180,13 @@ flowchart LR
 
 每个渠道的每个动作都有一个有序的后端列表。比如 `bilibili read` 先用 bili-cli，失败了自动换 B站公开接口；`web read` 先用 Jina Reader，再用 Exa。返回的 JSON 里 `backend` 字段会写明这次实际用的是谁。
 
+渠道已经加上时，搜索和按链接阅读直接走这个渠道。还没加的渠道，带 `public_web` 声明的关键词搜索和按链接阅读会先复用网页搜索/读取：成功就直接交付，不安装浏览器或要求登录；结果来自公开网页，完整性与时效需核对。公开路径不足再尝试站内工具，实际遇到登录墙才提示登录。`--backend public-web` 只查公开内容；`--backend opencli` 等声明后端直接使用站内能力。评论、字幕和账号列表保留各自的动作要求。
+
 平台改版、工具失效是常态。换后端只是调整这个列表，Agent 的调用方式不变。
 
-### 📌 保持最新，私有安装
+### 📌 已测版本，私有安装
 
-Agent Reach 装的工具（OpenCLI、bili-cli、boss-agent-cli、mcporter 等）装在 `~/.agent-reach/tools/` 里，不污染你的全局环境。工具不锁版本：每次装的都是最新版，`agent-reach update` 会把它们升到最新，即使 Agent Reach 本身没有新版本。已知有问题的上游版本会在新的 Agent Reach 版本里排除掉；`agent-reach doctor` 会显示每个工具实际装的版本。
+Agent Reach 装的工具位于 `~/.agent-reach/tools/`，可复用现有 OpenCLI。有已测版本的工具按已测版本安装，`update` 也不会改动；其他工具用兼容范围内的最新版；Boss 固定到已验证提交；`doctor` 显示实际版本。
 
 ### 🩺 能用要靠实测
 
@@ -201,9 +207,9 @@ Agent Reach 装的工具（OpenCLI、bili-cli、boss-agent-cli、mcporter 等）
 
 ## 安全性
 
-- **所有东西都在 `~/.agent-reach/` 下**：`config.yaml`（Key 和代理）、`state.json`、`tools/`（私有工具）、`sessions/`（命令行工具的登录状态）、`browser/`（专用浏览器的资料目录）、`mcporter.json`。唯一例外是使用说明：一份放在 `~/.agents/skills/agent-reach/`，其他 AI 的 skill 目录里只放指向它的链接。
-- **从不替你登录，也不读你自己浏览器的 Cookie。** 需要登录的渠道，由你本人在 Agent Reach 专用浏览器或工具自己的登录流程（比如 B站扫码）里完成。
-- **专用浏览器的调试端口只监听本机**（127.0.0.1:9222），但它开着时本机任何程序都能通过它控制这个浏览器。所以它 10 分钟没用就会自动关掉。
+- **所有东西都在 `~/.agent-reach/` 下**：`config.yaml`（Key 和代理）、`state.json`、`tools/`（私有工具）、`sessions/`（命令行工具的登录状态）、`browser/`（专用浏览器的资料目录）。唯一例外是使用说明：一份放在 `~/.agents/skills/agent-reach/`，其他 AI 的 skill 目录里只放指向它的链接。
+- **从不替你登录，不默认搬运 Cookie。** 先复用选定会话；需要认证时才进入明确选择的工具登录流程。Boss 原生 CDP 同步按工具机制保存到私有目录。
+- **CDP 调试端口只监听本机**。Boss 标准 CDP 窗口需用户使用后自行关闭；旧扩展专用模式的空闲退出机制不适用于它。
 - **建议用小号登录。** 平台可能限制自动化访问的账号，别拿主账号冒险。
 - **API Key 不要发在聊天里**：在你自己的终端运行 `agent-reach configure groq-key`，会隐藏输入。
 
@@ -234,7 +240,7 @@ Star 一下，下次需要的时候能找到。⭐
 
 ## 致谢
 
-[OpenCLI](https://github.com/jackwener/opencli) · [bili-cli](https://github.com/public-clis/bilibili-cli) · [boss-agent-cli](https://github.com/can4hou6joeng4/boss-agent-cli) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [Jina Reader](https://github.com/jina-ai/reader) · [Exa](https://exa.ai) · [mcporter](https://github.com/nicobailon/mcporter) · [mcp-server-linkedin](https://github.com/stickerdaniel/linkedin-mcp-server)
+[OpenCLI](https://github.com/jackwener/opencli) · [bili-cli](https://github.com/public-clis/bilibili-cli) · [boss-agent-cli](https://github.com/can4hou6joeng4/boss-agent-cli) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [Jina Reader](https://github.com/jina-ai/reader) · [Exa](https://exa.ai)
 
 ## 联系
 
@@ -274,3 +280,9 @@ Builder 也欢迎备注：`Builder + 你在做什么`
 ## Star History
 
 <a href="https://www.star-history.com/?type=date&repos=Panniantong%2FAgent-Reach"><picture><source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Panniantong/Agent-Reach&type=date&theme=dark&legend=top-left&sealed_token=K3_u-LJQTVURYu-38Tqa_VWJOSqMf_HbAw-QKSdGwEq6seqznugdIpXdSeztEdOutT40IBXwVxTmg8wS_OSygb5UWf1x8e-Fai6aygrjq6QH8vU09EcqQCN7atp-76HmxX-j9fnZ9NiSrLDNzK98TnXBFJ_Wb_y80I0nWr3O8DdGnLXFhAJgoNK3Jz8D" /><source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Panniantong/Agent-Reach&type=date&legend=top-left&sealed_token=P2746KOq7grpS8Q-nrqEzci1-Z0-dOw-M3KEqju-l3TyF24NMyRDR7TnxdReJWlXyomoT4mjjqC28-2-c2G6CnzmS1hgYdEDiGPmLkmEqKP5tgjORXshdrUFxoSxTqmIKEMFFmGZUX1v3ec-q_XMyftTVWzluiQH7CvKoZ1uDKU3PJN05mO22u7qlLeG" /><img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Panniantong/Agent-Reach&type=date&legend=top-left&sealed_token=P2746KOq7grpS8Q-nrqEzci1-Z0-dOw-M3KEqju-l3TyF24NMyRDR7TnxdReJWlXyomoT4mjjqC28-2-c2G6CnzmS1hgYdEDiGPmLkmEqKP5tgjORXshdrUFxoSxTqmIKEMFFmGZUX1v3ec-q_XMyftTVWzluiQH7CvKoZ1uDKU3PJN05mO22u7qlLeG" /></picture></a>
+
+
+
+### 共用专用浏览器 / Shared dedicated browser
+
+浏览器渠道共用一个 Reach 配置：CloakBrowser 优先，下载失败回退本机 Chrome；闲置 10 分钟关闭，下次自动重开。渠道数据由 OpenCLI / 原生 CLI 提取。授权登录态继承、自动安装插件和按站点清理见 [浏览器说明](docs/cloakbrowser.md)。小宇宙转录保留为可选渠道，需要 Groq Key。

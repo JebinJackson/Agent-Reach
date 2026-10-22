@@ -6,11 +6,15 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+        include:
+          - os: macos-latest
+            python-version: "3.13"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -82,9 +86,19 @@ jobs:
           names = zipfile.ZipFile(whl).namelist()
           dupes = [n for n, c in collections.Counter(names).items() if c > 1]
           assert not dupes, f"duplicate entries in wheel: {dupes}"
-          for path in ("agent_reach/skill/SKILL.md", "agent_reach/skill/SKILL_en.md"):
+          for path in (
+              "agent_reach/skill/SKILL.md",
+              "agent_reach/skill/SKILL_en.md",
+              "agent_reach/skill/references/sessions.md",
+              "agent_reach/skill/references/maintenance.md",
+              "agent_reach/skill/references/capabilities.md",
+          ):
               assert path in names, f"{path} missing from wheel"
-          assert any(n.startswith("agent_reach/scripts/") for n in names), "agent_reach/scripts/ missing from wheel"
+          assert "agent_reach/channels/xiaoyuzhou.py" in names
+          assert "agent_reach/scripts/transcribe_xiaoyuzhou.sh" in names
+          for retired in ("agent_reach/mcp_server.py", "agent_reach/runtime/ask.py",
+                          "agent_reach/backends/cloak_worker.py", "agent_reach/runtime/opencli_compat.py"):
+              assert retired not in names, f"retired module remains in wheel: {retired}"
           print(f"wheel OK: {len(names)} entries, no duplicates, data files present")
           PY
 
