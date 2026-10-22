@@ -21,6 +21,7 @@ Designed to be importable from channels (e.g. YouTubeChannel.transcribe).
 from __future__ import annotations
 
 import ipaddress
+import json
 import math
 import shutil
 import socket
@@ -252,31 +253,42 @@ def download_audio(url: str, out_dir: Path) -> Path:
     _assert_safe_public_url(url)
     _require("yt-dlp")
     template = out_dir / "source.%(ext)s"
-    _run(
-        [
-            "yt-dlp",
-            "-x",
-            "--audio-format",
-            "m4a",
-            "--audio-quality",
-            "0",
-            "--no-playlist",
-            "--max-filesize",
-            str(MAX_SOURCE_BYTES),
-            "-o",
-            str(template),
-            "--",
-            url,
-        ],
-        timeout=1800,  # long podcasts over slow networks — generous but bounded
-    )
-    files = sorted(out_dir.glob("source.*"))
-    if not files:
+    # Optional metadata, thumbnails, and subtitles also match source.*. Ask
+    # yt-dlp for the final media path after extraction and any configured moves.
+    with tempfile.TemporaryDirectory(prefix="agent-reach-download-") as report_dir:
+        report = Path(report_dir) / "output.json"
+        _run(
+            [
+                "yt-dlp",
+                "-x",
+                "--audio-format",
+                "m4a",
+                "--audio-quality",
+                "0",
+                "--no-playlist",
+                "--max-filesize",
+                str(MAX_SOURCE_BYTES),
+                "-o",
+                str(template),
+                "--print-to-file",
+                "after_move:%(filepath)j",
+                str(report),
+                "--",
+                url,
+            ],
+            timeout=1800,  # long podcasts over slow networks — generous but bounded
+        )
+        audio = None
+        if report.is_file():
+            try:
+                audio = Path(json.loads(report.read_text(encoding="utf-8")))
+            except (ValueError, TypeError) as exc:
+                raise TranscribeError("yt-dlp reported an invalid output path") from exc
+    if audio is None or not audio.is_file():
         limit_mib = MAX_SOURCE_BYTES // (1024 * 1024)
         raise TranscribeError(
             f"yt-dlp produced no output file (source may exceed {limit_mib} MiB limit)"
         )
-    audio = files[0]
     _require_size_at_most(audio, MAX_SOURCE_BYTES, "downloaded source")
     return audio
 
